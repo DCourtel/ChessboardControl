@@ -1,7 +1,7 @@
 ﻿
 namespace ChessboardControl
 {
-    partial class Chessboard
+    public partial class Chessboard
     {
         /// <summary>
         /// Variable nécessaire au concepteur.

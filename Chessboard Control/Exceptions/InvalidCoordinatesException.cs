@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ChessboardControl.Exceptions
+namespace ChessboardControl
 {
     public class InvalidCoordinatesException : Exception
     {

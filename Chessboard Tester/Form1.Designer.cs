@@ -1,5 +1,5 @@
 ﻿
-namespace Chessboard_Tester
+namespace ChessboardTester
 {
     partial class Form1
     {
@@ -239,17 +239,13 @@ namespace Chessboard_Tester
             this.BtnSaveToFile.UseVisualStyleBackColor = true;
             this.BtnSaveToFile.Click += new System.EventHandler(this.BtnSaveToFile_Click);
             // 
-            // chessboard1
+            // chessboard2
             // 
-            this.chessboard1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.chessboard1.BoardDirection = ChessboardControl.BoardDirection.BlackOnTop;
             this.chessboard1.Location = new System.Drawing.Point(12, 12);
-            this.chessboard1.Name = "chessboard1";
+            this.chessboard1.Name = "chessboard2";
             this.chessboard1.Size = new System.Drawing.Size(340, 340);
-            this.chessboard1.TabIndex = 0;
-            this.chessboard1.Text = "chessboard1";
+            this.chessboard1.TabIndex = 16;
+            this.chessboard1.Text = "chessboard2";
             this.chessboard1.OnSquareSelected += new ChessboardControl.Chessboard.SelectedSquareEventHandler(this.chessboard1_OnSquareSelected);
             this.chessboard1.OnPieceMoved += new ChessboardControl.Chessboard.PieceMovedEventHandler(this.chessboard1_OnPieceMoved);
             this.chessboard1.OnPieceRemoved += new ChessboardControl.Chessboard.PieceRemovedEventHandler(this.chessboard1_OnPieceRemoved);
@@ -260,6 +256,7 @@ namespace Chessboard_Tester
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(442, 462);
+            this.Controls.Add(this.chessboard1);
             this.Controls.Add(this.BtnSaveToFile);
             this.Controls.Add(this.ChkBxFlipBoard);
             this.Controls.Add(this.BtnMovePiece);
@@ -275,7 +272,6 @@ namespace Chessboard_Tester
             this.Controls.Add(this.LblSelectedSquare);
             this.Controls.Add(this.BtnSetup);
             this.Controls.Add(this.BtnClear);
-            this.Controls.Add(this.chessboard1);
             this.Name = "Form1";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -287,7 +283,6 @@ namespace Chessboard_Tester
 
         #endregion
 
-        private ChessboardControl.Chessboard chessboard1;
         private System.Windows.Forms.Button BtnClear;
         private System.Windows.Forms.Button BtnSetup;
         private System.Windows.Forms.Label LblSelectedSquare;
@@ -303,6 +298,7 @@ namespace Chessboard_Tester
         private System.Windows.Forms.Button BtnMovePiece;
         private System.Windows.Forms.CheckBox ChkBxFlipBoard;
         private System.Windows.Forms.Button BtnSaveToFile;
+        private ChessboardControl.Chessboard chessboard1;
     }
 }
 

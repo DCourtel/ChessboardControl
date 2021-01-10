@@ -23,14 +23,14 @@ namespace ChessboardControl
 
         private struct DragOperation
         {
-            internal DragOperation(ChessPiece selectedPiece, BoardCoordinates source)
+            internal DragOperation(ChessPieceKind selectedPiece, ChessSquare source)
             {
                 DraggedPiece = selectedPiece;
                 Origin = source;
             }
 
-            internal ChessPiece DraggedPiece { get; set; }
-            internal BoardCoordinates Origin { get; set; }
+            internal ChessPieceKind DraggedPiece { get; set; }
+            internal ChessSquare Origin { get; set; }
         }
 
         public Chessboard()
@@ -122,7 +122,7 @@ namespace ChessboardControl
         /// <summary>
         /// Gets the position of all pieces.
         /// </summary>
-        private Board Pieces { get; } = new Board();
+        private Board ChessEngine { get; } = new Board();
 
         /// <summary>
         /// Gets or sets the size of the control. Minimum value is 255x255.
@@ -189,7 +189,7 @@ namespace ChessboardControl
         /// </summary>
         public void ClearBoard()
         {
-            Pieces.ClearBoard();
+            ChessEngine.Clear();
             Invalidate();
         }
 
@@ -204,11 +204,36 @@ namespace ChessboardControl
         /// <summary>
         /// Gets the piece at the given position.
         /// </summary>
-        /// <param name="squareCoordinate">Coordinates of the square where to look at.</param>
+        /// <param name="square">Coordinates of the square where to look at.</param>
         /// <returns></returns>
-        public ChessPiece GetPieceAt(BoardCoordinates squareCoordinate)
+        public ChessPiece GetPieceAt(ChessSquare square)
         {
-            return Pieces.GetPieceAt(squareCoordinate);
+            return ChessEngine.GetPieceAt(square);
+        }
+
+        /// <summary>
+        /// Returns the bitmap for the given piece.
+        /// </summary>
+        /// <param name="piece"></param>
+        /// <returns></returns>
+        private Bitmap GetPieceImage(ChessPiece piece)
+        {
+            switch (piece.Kind)
+            {
+                case ChessPieceKind.Pawn:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhitePawn : Properties.Resources.BlackPawn;
+                case ChessPieceKind.Rook:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhiteRook : Properties.Resources.BlackRook;
+                case ChessPieceKind.Knight:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhiteKnight : Properties.Resources.BlackKnight;
+                case ChessPieceKind.Bishop:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhiteBishop : Properties.Resources.BlackBishop;
+                case ChessPieceKind.King:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhiteKing : Properties.Resources.BlackKing;
+                case ChessPieceKind.Queen:
+                    return piece.Color == ChessColor.White ? Properties.Resources.WhiteQueen : Properties.Resources.BlackQueen;
+            }
+            throw new ArgumentOutOfRangeException();
         }
 
         /// <summary>
@@ -218,24 +243,25 @@ namespace ChessboardControl
         /// <param name="from">Coordinates of the square where the piece move from.</param>
         /// <param name="to">Coordinates of the square where the piece move to.</param>
         /// <exception cref="Exceptions.InvalidCoordinatesException">Thrown if there is no piece on the <paramref name="from"/> coordinates.</exception>
-        public ChessPiece MovePiece(BoardCoordinates from, BoardCoordinates to)
+        public void MovePiece(ChessSquare from, ChessSquare to)
         {
-            if (Pieces.GetPieceAt(from) == ChessPiece.None) { throw new Exceptions.InvalidCoordinatesException(nameof(from), "Invalid coordinates: There is no piece on the given square."); }
-            var capturedPiece = Pieces.MovePiece(from, to);
-            RedrawSquare(from);
-            RedrawSquare(to);
-
-            return capturedPiece;
+            var moveValidation = ChessEngine.GetMoveValidity(from, to);
+            if (moveValidation.IsValid)
+            {
+                ChessEngine.Move(from, to);
+                RedrawSquare(from);
+                RedrawSquare(to);
+            }
         }
 
-        private void RedrawSquare(BoardCoordinates targetedSquare)
+        private void RedrawSquare(ChessSquare targetedSquare)
         {
             var g = this.CreateGraphics();
             var blackSquareBrush = new Pen(BlackSquareColor).Brush;
             var whiteSquareBrush = new Pen(WhiteSquareColor).Brush;
-            var x = (int)targetedSquare.Letter;
-            var y = (int)targetedSquare.Digit;
-            var isWhiteSquare = (((int)targetedSquare.Letter + (int)targetedSquare.Digit) % 2) != 0;
+            var x = (int)targetedSquare.File;
+            var y = (int)targetedSquare.Rank;
+            var isWhiteSquare = (((int)targetedSquare.File + (int)targetedSquare.Rank) % 2) != 0;
             var square = (BoardDirection == BoardDirection.BlackOnTop ?
                 new RectangleF(DigitAreaWidth + x * SquareWidth, (7 - y) * SquareHeight, SquareWidth, SquareHeight) :
                 new RectangleF(DigitAreaWidth + (7 - x) * SquareWidth, (y) * SquareHeight, SquareWidth, SquareHeight));
@@ -243,9 +269,12 @@ namespace ChessboardControl
             //  Draw square
             g.FillRectangle(isWhiteSquare ? whiteSquareBrush : blackSquareBrush, square);
             var currentPiece = GetPieceAt(targetedSquare);
-            if (currentPiece != ChessPiece.None)
+            if (currentPiece != null)
             {
-                g.DrawImage(Board.GetPieceImage(currentPiece), square);
+                if (DragDropOperation.Origin == null || !DragDropOperation.Origin.Equals(targetedSquare))
+                {
+                    g.DrawImage(GetPieceImage(currentPiece), square);
+                }
             }
 
             //  Draw borders
@@ -271,22 +300,23 @@ namespace ChessboardControl
         /// </summary>
         /// <param name="squareCoordinate">Coordinates of the square where to set the piece.</param>
         /// <param name="piece">Piece to set.</param>
-        public void SetPieceAt(BoardCoordinates squareCoordinate, ChessPiece piece)
+        public void SetPieceAt(ChessSquare squareCoordinate, ChessPieceKind piece)
         {
-            Pieces.SetPieceAt(squareCoordinate, piece);
+            // ChessEngine.SetPieceAt(squareCoordinate, piece);
         }
 
         /// <summary>
-        /// Removes all pieces and add Black and White pieces into the initial position.
+        /// Removes all pieces and add Black and White pieces into their initial position.
         /// </summary>
         public void SetupInitialPosition()
         {
-            Pieces.SetupInitialPosition();
+            ChessEngine.LoadFEN(Board.DEFAULT_FEN_POSITION);
             Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs pe)
         {
+            this.SuspendLayout();
             var g = pe.Graphics;
             var coordinateAreaBrush = new Pen(CoordinateAreaBackColor).Brush;
             var blackSquareBrush = new Pen(BlackSquareColor).Brush;
@@ -303,8 +333,8 @@ namespace ChessboardControl
             for (int i = 0; i < 8; i++)
             {
                 var letter = (BoardDirection == BoardDirection.BlackOnTop ?
-                    ((XCoordinate)i).ToString() :
-                     ((XCoordinate)7 - i).ToString());
+                    ((ChessFile)i).ToString() :
+                     ((ChessFile)7 - i).ToString());
                 var characterSize = g.MeasureString(letter, coordinateFont);
                 var x = DigitAreaWidth + i * SquareWidth + (SquareWidth - characterSize.Width) / 2;
                 var y = this.Height - LetterAreaHeight + (LetterAreaHeight - characterSize.Height) / 2;
@@ -324,6 +354,12 @@ namespace ChessboardControl
                 g.DrawString(digit, coordinateFont, DEFAULT_COORDINATE_FORGROUND_BRUSH, x, y);
             }
 
+            //  Draw Turn indicator
+            var turnIndicatorBorder = new Rectangle(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
+            var turnIndicatorSquare = new RectangleF(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
+            g.FillRectangle(ChessEngine.Turn == ChessColor.White ? whiteSquareBrush : blackSquareBrush, turnIndicatorSquare);
+            g.DrawRectangle(new Pen(Color.Black), turnIndicatorBorder);
+
             //  Draw cells
             bool isWhiteSquare = true;
             for (int x = 0; x < 8; x++)
@@ -332,10 +368,11 @@ namespace ChessboardControl
                 {
                     var square = new RectangleF(DigitAreaWidth + x * SquareWidth, y * SquareHeight, SquareWidth, SquareHeight);
                     g.FillRectangle(isWhiteSquare ? whiteSquareBrush : blackSquareBrush, square);
-                    ChessPiece currentPiece = (BoardDirection == BoardDirection.BlackOnTop ? Pieces.GetPieceAt(x, 7 - y) : Pieces.GetPieceAt(7 - x, y));
-                    if (currentPiece != ChessPiece.None)
+                    ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ? new ChessSquare((ChessFile)x, (ChessRank)7 - y) : new ChessSquare((ChessFile)7 - x, (ChessRank)y);
+                    ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
+                    if (currentPiece != null)
                     {
-                        g.DrawImage(Board.GetPieceImage(currentPiece), square);
+                        g.DrawImage(GetPieceImage(currentPiece), square);
                     }
 
                     isWhiteSquare = !isWhiteSquare;
@@ -348,21 +385,22 @@ namespace ChessboardControl
             g.DrawRectangle(new Pen(Color.Black), borders);
 
             g.Flush();
+            this.ResumeLayout();
         }
 
         #endregion Methods
 
         #region Delegates & Events
 
-        public delegate void SelectedSquareEventHandler(Chessboard sender, BoardCoordinates from, ChessPiece selectedPiece);
+        public delegate void SelectedSquareEventHandler(Chessboard sender, ChessSquare from, ChessPieceKind selectedPiece);
         [Description("Fired when the user presses the left button of the mouse on a square.")]
         public event SelectedSquareEventHandler OnSquareSelected;
 
-        public delegate void PieceMovedEventHandler(Chessboard sender, BoardCoordinates from, BoardCoordinates to, ChessPiece movedPiece, ChessPiece capturedPiece);
+        public delegate void PieceMovedEventHandler(Chessboard sender, ChessSquare from, ChessSquare to, ChessPieceKind movedPiece, ChessPieceKind capturedPiece);
         [Description("Fired when the user moves a piece on the board.")]
         public event PieceMovedEventHandler OnPieceMoved;
 
-        public delegate void PieceRemovedEventHandler(Chessboard sender, BoardCoordinates from, ChessPiece removedPiece, Point dropPoint);
+        public delegate void PieceRemovedEventHandler(Chessboard sender, ChessSquare from, ChessPieceKind removedPiece, Point dropPoint);
         [Description("Fired when the user drags and drop a piece from the board to a location outside of the board.")]
         public event PieceRemovedEventHandler OnPieceRemoved;
 
@@ -378,46 +416,53 @@ namespace ChessboardControl
             if (e.Button == MouseButtons.Left && e.X > DigitAreaWidth && e.Y < Height - LetterAreaHeight)
             {
                 var origin = (BoardDirection == BoardDirection.BlackOnTop ?
-                    new BoardCoordinates((XCoordinate)((e.X - DigitAreaWidth) / SquareWidth), (YCoordinate)(7 - (e.Y / SquareHeight))) :
-                    new BoardCoordinates((XCoordinate)(7 - (e.X - DigitAreaWidth) / SquareWidth), (YCoordinate)(e.Y / SquareHeight)));
+                    new ChessSquare((ChessFile)((e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(7 - (e.Y / SquareHeight))) :
+                    new ChessSquare((ChessFile)(7 - (e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(e.Y / SquareHeight)));
                 var selectedPiece = GetPieceAt(origin);
 
-                if (selectedPiece != ChessPiece.None)
+                if (selectedPiece != null)
                 {
-                    var resizedBitmap = new Bitmap(Board.GetPieceImage(selectedPiece), new Size(SquareWidth, SquareHeight));
+                    var resizedBitmap = new Bitmap(GetPieceImage(selectedPiece), new Size(SquareWidth, SquareHeight));
                     Cursor = new Cursor(resizedBitmap.GetHicon());
-                    DragDropOperation = new DragOperation(selectedPiece, origin);
-                    Pieces.SetPieceAt(origin, ChessPiece.None);
+                    DragDropOperation = new DragOperation(selectedPiece.Kind, origin);
                     RedrawSquare(origin);
+                    OnSquareSelected?.Invoke(this, origin, selectedPiece.Kind);
                 }
-                OnSquareSelected(this, origin, selectedPiece);
             }
         }
 
         private void Chessboard_MouseUp(object sender, MouseEventArgs e)
         {
             Cursor = Cursors.Default;
-            if (DragDropOperation.DraggedPiece != ChessPiece.None)
+            if (DragDropOperation.DraggedPiece != ChessPieceKind.None)
             {
                 if (e.X > DigitAreaWidth && e.X < this.Width && e.Y < Height - LetterAreaHeight && e.Y > 0)
                 {
                     //  Drops a piece on the board
                     var destinationSquare = (BoardDirection == BoardDirection.BlackOnTop ?
-                        new BoardCoordinates((XCoordinate)((e.X - DigitAreaWidth) / SquareWidth), (YCoordinate)(7 - (e.Y / SquareHeight))) :
-                        new BoardCoordinates((XCoordinate)(7 - (e.X - DigitAreaWidth) / SquareWidth), (YCoordinate)(e.Y / SquareHeight)));
-                    var capturedPiece = Pieces.GetPieceAt(destinationSquare);
-                    Pieces.SetPieceAt(destinationSquare, DragDropOperation.DraggedPiece);
-                    RedrawSquare(destinationSquare);
-                    OnPieceMoved(this, DragDropOperation.Origin, destinationSquare, DragDropOperation.DraggedPiece, capturedPiece);
+                        new ChessSquare((ChessFile)((e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(7 - (e.Y / SquareHeight))) :
+                        new ChessSquare((ChessFile)(7 - (e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(e.Y / SquareHeight)));
+                    var moveValidation = ChessEngine.GetMoveValidity(DragDropOperation.Origin, destinationSquare);
+                    if (moveValidation.IsValid)
+                    {
+                        ChessEngine.Move(moveValidation);
+                        Invalidate();
+                        OnPieceMoved?.Invoke(this, DragDropOperation.Origin, destinationSquare, DragDropOperation.DraggedPiece, moveValidation.CapturedPiece);
+                    }
+                    else
+                    {
+                        Invalidate();
+                    }
                 }
                 else
                 {
                     //  Drops a piece outside of the board
-                    OnPieceRemoved(this, DragDropOperation.Origin, DragDropOperation.DraggedPiece, e.Location);
+                    RedrawSquare(DragDropOperation.Origin);
+                    OnPieceRemoved?.Invoke(this, DragDropOperation.Origin, DragDropOperation.DraggedPiece, e.Location);
                 }
             }
-            DragDropOperation = new DragOperation(ChessPiece.None, new BoardCoordinates(XCoordinate.None, YCoordinate.None));
-            OnSquareUnselected(this, new EventArgs());
+            DragDropOperation = new DragOperation(ChessPieceKind.None, null);
+            OnSquareUnselected?.Invoke(this, new EventArgs());
         }
 
         private void Chessboard_Resize(object sender, EventArgs e)
