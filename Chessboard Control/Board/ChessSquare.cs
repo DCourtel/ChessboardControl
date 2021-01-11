@@ -94,14 +94,10 @@ namespace ChessboardControl
             }
         }
 
-        /// <summary>
-        /// Returns an instance of this class initialized with the x88 coordinates.
-        /// </summary>
-        /// <param name="x88Notation"></param>
-        internal ChessSquare(int x88Notation)
+        internal ChessSquare(int x88)
         {
-            Rank = (ChessRank)(x88Notation >> 4);
-            File = (ChessFile)(x88Notation & 15);
+            this.File = (ChessFile)(x88 & 15);
+            this.Rank = (ChessRank)7 - (x88 >> 4);
         }
 
         #region Properties

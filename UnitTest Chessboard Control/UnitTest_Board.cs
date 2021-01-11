@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Collections.Generic;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChessboardControl;
 using SUT = ChessboardControl.Board;
 
@@ -171,6 +172,93 @@ namespace UnitTest_Chessboard_Control
 
             //	Act
             board.PutPiece(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black), "a9");
+        }
+
+
+        [TestMethod]
+        [DataRow("e2", ChessPieceKind.Pawn , ChessColor.White)]
+        [DataRow("a1", ChessPieceKind.Rook, ChessColor.White)]
+        [DataRow("b1", ChessPieceKind.Knight, ChessColor.White)]
+        [DataRow("c1", ChessPieceKind.Bishop, ChessColor.White)]
+        [DataRow("d1", ChessPieceKind.Queen, ChessColor.White)]
+        [DataRow("e1", ChessPieceKind.King, ChessColor.White)]
+        [DataRow("a7", ChessPieceKind.Pawn, ChessColor.Black)]
+        [DataRow("a8", ChessPieceKind.Rook, ChessColor.Black)]
+        public void RemovePieceAt_Should_RemoveThePiece(string square, ChessPieceKind expectedPiece, ChessColor expectedColor)
+        {
+            //	Arrange
+            SUT board = new SUT();
+            ChessPiece actualPiece;
+
+            //	Act
+            actualPiece = board.RemovePieceAt(new ChessSquare(square));
+
+            //	Assert
+            Assert.AreEqual(expectedPiece, actualPiece.Kind);
+            Assert.AreEqual(expectedColor, actualPiece.Color);
+        }
+
+
+        [TestMethod]
+        public void RemovePieceAt_Should_ReturnsNull()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Assert
+            Assert.IsNull(board.RemovePieceAt(new ChessSquare("e4")));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void RemovePieceAt_Should_ThrowArgumentNullException()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act
+            board.RemovePieceAt(null);
+
+            //	Assert
+
+        }
+
+        [TestMethod]
+        public void Ascii_Should_ReturnsCorrectFormat()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            string actual;
+
+            //	Act
+            actual = board.Ascii();
+
+            //	Assert
+            Assert.AreEqual("   +------------------------+\n" +
+                " 8 | r  n  b  q  k  b  n  r |\n" +
+                " 7 | p  p  p  p  p  p  p  p |\n" +
+                " 6 | .  .  .  .  .  .  .  . |\n" +
+                " 5 | .  .  .  .  .  .  .  . |\n" +
+                " 4 | .  .  .  .  .  .  .  . |\n" +
+                " 3 | .  .  .  .  .  .  .  . |\n" +
+                " 2 | P  P  P  P  P  P  P  P |\n" +
+                " 1 | R  N  B  Q  K  B  N  R |\n" +
+                "   +------------------------+\n" +
+                "     a  b  c  d  e  f  g  h\n", actual);
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnsAllLegalMoves()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(20, legalMoves.Count);
         }
 
         [TestMethod]

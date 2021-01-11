@@ -239,10 +239,13 @@ namespace ChessboardTester
             this.BtnSaveToFile.UseVisualStyleBackColor = true;
             this.BtnSaveToFile.Click += new System.EventHandler(this.BtnSaveToFile_Click);
             // 
-            // chessboard2
+            // chessboard1
             // 
+            this.chessboard1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.chessboard1.Location = new System.Drawing.Point(12, 12);
-            this.chessboard1.Name = "chessboard2";
+            this.chessboard1.Name = "chessboard1";
             this.chessboard1.Size = new System.Drawing.Size(340, 340);
             this.chessboard1.TabIndex = 16;
             this.chessboard1.Text = "chessboard2";

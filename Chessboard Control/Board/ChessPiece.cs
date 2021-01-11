@@ -20,5 +20,10 @@ namespace ChessboardControl
 
             return this.Kind == other.Kind && this.Color == other.Color;
         }
+
+        public override string ToString()
+        {
+            return $"{Color} {Kind}";
+        }
     }
 }

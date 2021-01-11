@@ -117,18 +117,13 @@ namespace ChessboardControl
         };
 
         private ChessPiece[] board = new ChessPiece[128];
-
         private Dictionary<ChessColor, int> kings;
-
         private Dictionary<ChessColor, ChessCastling> castling;
-
         private int ep_square = EMPTY_SQUARE;
         private int half_moves = 0;
         private int move_number = 1;
-
         private Stack<BoardState> history;
 
-        // ================ Constructor ====================
 
         /// <summary>
         /// Creates an instance of the class initialized with the default position.
@@ -148,6 +143,56 @@ namespace ChessboardControl
         }
 
         #region Properties
+
+        /// <summary>
+        /// Gets whether the game is draw by the Fifty moves rule.
+        /// </summary>
+        public bool FiftyMoveRule
+        {
+            get { return half_moves >= 100; }
+        }
+
+        /// <summary>
+        /// Gets whether the game is over.
+        /// </summary>
+        public bool GameOver
+        {
+            get { return FiftyMoveRule || IsCheckmate || IsStalemate || InsufficientMaterial() || InThreefoldRepetition(); }
+        }
+
+        /// <summary>
+        /// Gets whether the King is attacked.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsCheck
+        {
+            get { return IsKingAttacked(Turn); }
+        }
+
+        /// <summary>
+        /// Gets whether the King is checkmate.
+        /// </summary>
+        public bool IsCheckmate
+        {
+            get { return IsCheck && GenerateMoves().Count == 0; }
+        }
+
+        /// <summary>
+        /// Gets whether the game is in draw.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDraw
+        {
+            get { return (FiftyMoveRule || IsStalemate || InsufficientMaterial() || InThreefoldRepetition()); }
+        }
+
+        /// <summary>
+        /// Gets whether the King is stalemate.
+        /// </summary>
+        public bool IsStalemate
+        {
+            get { return !IsCheck && GenerateMoves().Count == 0; }
+        }
 
         /// <summary>
         /// Gets or sets whose turn it is.
@@ -262,7 +307,7 @@ namespace ChessboardControl
                             fen += emptySquareCount.ToString();
                             emptySquareCount = 0;
                         }
-                        fen += ChessPieceToFEN(board[squareIndex].Kind, board[squareIndex].Color);
+                        fen += ChessPieceToFEN(board[squareIndex]);
                     }
                 }
                 if (emptySquareCount > 0)
@@ -275,7 +320,7 @@ namespace ChessboardControl
             }
 
             //  Castling
-            string castlingFlags =  $"{((castling[ChessColor.White] & ChessCastling.KingSide) != 0 ? "K" : "")}" +
+            string castlingFlags = $"{((castling[ChessColor.White] & ChessCastling.KingSide) != 0 ? "K" : "")}" +
                                     $"{((castling[ChessColor.White] & ChessCastling.QueenSide) != 0 ? "Q" : "")}" +
                                     $"{((castling[ChessColor.Black] & ChessCastling.KingSide) != 0 ? "k" : "")}" +
                                     $"{((castling[ChessColor.Black] & ChessCastling.QueenSide) != 0 ? "q" : "")}";
@@ -292,8 +337,11 @@ namespace ChessboardControl
         /// </summary>
         /// <param name="square"></param>
         /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
         public ChessPiece GetPieceAt(ChessSquare square)
         {
+            if (square == null) { throw new ArgumentNullException(nameof(square)); }
+
             return board[square.x88Notation];
         }
 
@@ -307,12 +355,12 @@ namespace ChessboardControl
         public void PutPiece(ChessPiece piece, string square)
         {
             //  Check for valid Piece
-            if(piece == null)
+            if (piece == null)
             {
                 throw new ArgumentNullException(nameof(piece));
             }
             //  Check for valid square
-            if(square == null)
+            if (square == null)
             {
                 throw new ArgumentNullException(nameof(square));
             }
@@ -338,12 +386,15 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Removes a piece from the board.
+        /// Removes a piece from the given square.
         /// </summary>
-        /// <param name="square"></param>
-        /// <returns>An instance of the removed piece or null if there is no piece on the square.</returns>
-        public ChessPiece Remove(ChessSquare square)
+        /// <param name="square">Coordinates of the square where to remove the piece.</param>
+        /// <returns>An instance of the removed piece or null if there was no piece on the square.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
+        public ChessPiece RemovePieceAt(ChessSquare square)
         {
+            if (square == null) { throw new ArgumentNullException(nameof(square)); }
+
             ChessPiece piece = GetPieceAt(square);
             board[square.x88Notation] = null;
             if (piece != null && piece.Kind == ChessPieceKind.King)
@@ -354,212 +405,173 @@ namespace ChessboardControl
             return piece;
         }
 
-        private Move build_move(ChessPiece[] board, int from, int to, ChessMoveType flags, ChessPieceKind promotion = ChessPieceKind.None)
+        private List<ChessMove> GenerateMoves()
         {
-            Move move = new Move()
-            {
-                color = Turn,
-                from = from,
-                to = to,
-                flags = flags,
-                piece = board[from].Kind
-            };
+            List<ChessMove> moves = new List<ChessMove>();
 
-            if (promotion != ChessPieceKind.None)
+            for (int file = 0; file < 8; file++)
             {
-                move.flags |= ChessMoveType.Promotion;
-                move.promotion = promotion;
+                for (int rank = 0; rank < 8; rank++)
+                {
+                    var fromSquareIndex = 16 * rank + file;
+
+                    ChessPiece movingPiece = board[fromSquareIndex];
+                    if (movingPiece == null) continue;
+                    if (movingPiece.Color != Turn) continue;
+                    moves.AddRange(GenerateMove(fromSquareIndex));
+                }
             }
 
-            if (board[to] != null)
-            {
-                move.captured = board[to].Kind;
-            }
-            else if ((flags & ChessMoveType.EP_Capture) != 0)
-            {
-                move.captured = ChessPieceKind.Pawn;
-            }
+            moves.AddRange(GenerateCastling());
 
-            return move;
+            return moves;
         }
 
-        private void add_move(ChessPiece[] board, Stack<Move> moves, int from, int to, ChessMoveType flags)
+        private List<ChessMove> GenerateMove(int fromSquareIndex)
         {
-            if (board[from].Kind == ChessPieceKind.Pawn && (rank(to) == RANK_8 || rank(to) == RANK_1))
+            List<ChessMove> moves = new List<ChessMove>();
+            ChessColor them = swap_color(Turn);
+            Dictionary<ChessColor, int> second_rank = new Dictionary<ChessColor, int>() { { ChessColor.Black, RANK_7 }, { ChessColor.White, RANK_2 } };
+            ChessPiece movingPiece = board[fromSquareIndex];
+
+            if (movingPiece.Kind == ChessPieceKind.Pawn)
             {
-                ChessPieceKind[] pieces = { ChessPieceKind.Queen, ChessPieceKind.Rook, ChessPieceKind.Bishop, ChessPieceKind.Knight };
-                for (int i = 0; i < pieces.Length; i++)
+                /* single square, non-capturing */
+                int toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveOneSquare];
+                if (board[toSquareIndex] == null)
                 {
-                    moves.Push(build_move(board, from, to, flags, pieces[i]));
+                    var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                    /* double square */
+                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveTwoSquare];
+                    if (second_rank[Turn] == GetRank(fromSquareIndex) && board[toSquareIndex] == null)
+                    {
+                        move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
+                }
+
+                /* pawn captures */
+                for (int j = 2; j < 4; j++)
+                {
+                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][j];
+                    if ((toSquareIndex & 0x88) != 0) continue;
+                    if (board[toSquareIndex] != null && board[toSquareIndex].Color == them)
+                    {
+                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
+                    else if (toSquareIndex == ep_square)
+                    {
+                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
                 }
             }
             else
             {
-                moves.Push(build_move(board, from, to, flags));
+                for (int j = 0; j < PIECE_OFFSETS[movingPiece.Kind].Length; j++)
+                {
+                    int offset = PIECE_OFFSETS[movingPiece.Kind][j];
+                    int square = fromSquareIndex;
+                    while (true)
+                    {
+                        square += offset;
+                        if ((square & 0x88) != 0) break;
+                        if (board[square] == null)
+                        {
+                            var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
+
+                            if (move.IsValid)
+                            {
+                                moves.Add(move);
+                            }
+                        }
+                        else
+                        {
+                            if (board[square].Color == them)
+                            {
+                                var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
+
+                                if (move.IsValid)
+                                {
+                                    moves.Add(move);
+                                }
+                            }
+                            break;
+                        }
+
+                        /* break, if knight or king */
+                        if (movingPiece.Kind == ChessPieceKind.Knight || movingPiece.Kind == ChessPieceKind.King) break;
+                    }
+                }
             }
 
+            return moves;
         }
 
-        private Stack<Move> generate_moves(Dictionary<string, object> options = null)
+        private List<ChessMove> GenerateCastling()
         {
-            //    Stack<Move> moves = new Stack<Move>();
-            //    ChessColor us = turn;
-            //    ChessColor them = swap_color(us);
-            //    Dictionary<ChessColor, int> second_rank = new Dictionary<ChessColor, int>() { { ChessColor.Black, RANK_7 }, { ChessColor.White, RANK_2 } };
-            //    int first_sq = SQUARES["a8"];
-            //    int last_sq = SQUARES["h1"];
-            //    bool single_square = false;
+            List<ChessMove> moves = new List<ChessMove>();
+            ChessColor them = swap_color(Turn);
 
-            //    bool legal = (options != null && options.ContainsKey("legal")) ? (bool)options["legal"] : true;
+            /* king-side castling */
+            if ((castling[Turn] & ChessCastling.KingSide) != 0)
+            {
+                int castling_from = kings[Turn];
+                int castling_to = castling_from + 2;
+                if (board[castling_from + 1] == null && board[castling_to] == null &&
+                !IsSquareAttacked(them, kings[Turn]) &&
+                !IsSquareAttacked(them, castling_from + 1) &&
+                !IsSquareAttacked(them, castling_to))
+                {
+                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
 
-            //    if (options != null && options.ContainsKey("square"))
-            //    {
-            //        string sq = (string)options["square"];
-            //        if (SQUARES.ContainsKey(sq))
-            //        {
-            //            first_sq = last_sq = SQUARES[sq];
-            //            single_square = true;
-            //        }
-            //        else
-            //        {
-            //            /* invalid square */
-            //            return null;
-            //        }
-            //    }
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                }
+            }
 
-            //    for (int fromSquareIndex = first_sq; fromSquareIndex <= last_sq; fromSquareIndex++)
-            //    {
-            //        if ((fromSquareIndex & 0x88) != 0)
-            //        {
-            //            fromSquareIndex += 7;
-            //            continue;
-            //        }
+            /* queen-side castling */
+            if ((castling[Turn] & ChessCastling.QueenSide) != 0)
+            {
+                int castling_from = kings[Turn];
+                int castling_to = castling_from - 2;
+                if (board[castling_from - 1] == null &&
+                board[castling_from - 2] == null &&
+                board[castling_from - 3] == null &&
+                !IsSquareAttacked(them, kings[Turn]) &&
+                !IsSquareAttacked(them, castling_from - 1) &&
+                !IsSquareAttacked(them, castling_to))
+                {
+                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
 
-            //        ChessPiece movingPiece = board[fromSquareIndex];
-            //        if (movingPiece == null) continue;
-            //        if (movingPiece.Color != us) continue;
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                }
+            }
 
-            //        if (movingPiece.Kind == ChessPieceKind.Pawn)
-            //        {
-            //            /* single square, non-capturing */
-            //            int toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[us][(int)PawnMove.MoveOneSquare];
-            //            if (board[toSquareIndex] == null)
-            //            {
-            //                add_move(board, moves, fromSquareIndex, toSquareIndex, ChessMoveType.Normal);
-            //                /* double square */
-            //                toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[us][(int)PawnMove.MoveTwoSquare];
-            //                if (second_rank[us] == rank(fromSquareIndex) && board[toSquareIndex] == null)
-            //                {
-            //                    add_move(board, moves, fromSquareIndex, toSquareIndex, ChessMoveType.Big_Pawn);
-            //                }
-            //            }
-
-            //            /* pawn captures */
-            //            for (int j = 2; j < 4; j++)
-            //            {
-            //                toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[us][j];
-            //                if ((toSquareIndex & 0x88) != 0) continue;
-            //                if (board[toSquareIndex] != null && board[toSquareIndex].Color == them)
-            //                {
-            //                    add_move(board, moves, fromSquareIndex, toSquareIndex, ChessMoveType.Capture);
-            //                }
-            //                else if (toSquareIndex == ep_square)
-            //                {
-            //                    add_move(board, moves, fromSquareIndex, ep_square, ChessMoveType.EP_Capture);
-            //                }
-            //            }
-            //        }
-            //        else
-            //        {
-            //            for (int j = 0; j < PIECE_OFFSETS[movingPiece.Kind].Length; j++)
-            //            {
-            //                int offset = PIECE_OFFSETS[movingPiece.Kind][j];
-            //                int square = fromSquareIndex;
-            //                while (true)
-            //                {
-            //                    square += offset;
-            //                    if ((square & 0x88) != 0) break;
-            //                    if (board[square] == null)
-            //                    {
-            //                        add_move(board, moves, fromSquareIndex, square, ChessMoveType.Normal);
-            //                    }
-            //                    else
-            //                    {
-            //                        if (board[square].Color == them)
-            //                        {
-            //                            add_move(board, moves, fromSquareIndex, square, ChessMoveType.Capture);
-            //                        }
-            //                        break;
-            //                    }
-
-            //                    /* break, if knight or king */
-            //                    if (movingPiece.Kind == ChessPieceKind.Knight || movingPiece.Kind == ChessPieceKind.King) break;
-            //                }
-            //            }
-            //        }
-
-            //    }
-
-            //    /* check for castling if: a) we're generating all moves, or b) we're doing
-            //* single square move generation on the king's square
-            //*/
-
-            //    if ((!single_square) || last_sq == kings[us])
-            //    {
-            //        /* king-side castling */
-            //        if ((castling[us] & ChessMoveType.KSide_Castle) != 0)
-            //        {
-            //            int castling_from = kings[us];
-            //            int castling_to = castling_from + 2;
-            //            if (board[castling_from + 1] == null && board[castling_to] == null &&
-            //            !IsSquareAttacked(them, kings[us]) &&
-            //            !IsSquareAttacked(them, castling_from + 1) &&
-            //            !IsSquareAttacked(them, castling_to))
-            //            {
-            //                add_move(board, moves, kings[us], castling_to, ChessMoveType.KSide_Castle);
-            //            }
-            //        }
-
-            //        /* queen-side castling */
-            //        if ((castling[us] & ChessMoveType.QSide_Castle) != 0)
-            //        {
-            //            int castling_from = kings[us];
-            //            int castling_to = castling_from - 2;
-            //            if (board[castling_from - 1] == null &&
-            //            board[castling_from - 2] == null &&
-            //            board[castling_from - 3] == null &&
-            //            !IsSquareAttacked(them, kings[us]) &&
-            //            !IsSquareAttacked(them, castling_from - 1) &&
-            //            !IsSquareAttacked(them, castling_to))
-            //            {
-            //                add_move(board, moves, kings[us], castling_to, ChessMoveType.QSide_Castle);
-            //            }
-            //        }
-            //    }
-            //    /* return all pseudo-legal moves (this includes moves that allow the king
-            //       * to be captured)
-            //       */
-            //    if (!legal)
-            //    {
-            //        return moves;
-            //    }
-
-            //    /* filter out illegal moves */
-            //    Stack<Move> legal_moves = new Stack<Move>();
-            //    for (var i = 0; i < moves.Count; i++)
-            //    {
-            //        MovePiece(moves.ElementAt(i));
-            //        if (!IsKingAttacked(us))
-            //        {
-            //            legal_moves.Push(moves.ElementAt(i));
-            //        }
-
-            //        undo_move();
-
-            //    }
-
-            //    return legal_moves;
-            return null;
+            return moves;
         }
 
         private string move_to_san(Move move, bool sloppy = false)
@@ -625,46 +637,15 @@ namespace ChessboardControl
 
         private bool IsSquareAttacked(ChessColor attackerColor, int targetedSquare)
         {
-            for (int attackerSquareIndex = SQUARES["a8"]; attackerSquareIndex <= SQUARES["h1"]; attackerSquareIndex++)
+            for (int rank = 0; rank < 8; rank++)
             {
-                /* did we run off the end of the board */
-                if ((attackerSquareIndex & 0x88) != 0) { attackerSquareIndex += 7; continue; }
-                /* if empty square or wrong color */
-                if (board[attackerSquareIndex] == null || board[attackerSquareIndex].Color != attackerColor) continue;
-
-                ChessPiece attackerPiece = board[attackerSquareIndex];
-                int difference = attackerSquareIndex - targetedSquare;
-                int index = difference + 119;
-
-                if ((ATTACKS[index] & (1 << SHIFTS[attackerPiece.Kind])) != 0)
+                for (int file = 0; file < 8; file++)
                 {
-                    if (attackerPiece.Kind == ChessPieceKind.Pawn)
-                    {
-                        if (difference > 0)
-                        {
-                            if (attackerPiece.Color == ChessColor.White) return true;
-                        }
-                        else
-                        {
-                            if (attackerPiece.Color == ChessColor.Black) return true;
-                        }
-                        continue;
-                    }
+                    int attackerSquareIndex = rank * 16 + file;
+                    //  No piece on the square or same side
+                    if (board[attackerSquareIndex] == null || board[attackerSquareIndex].Color != attackerColor) continue;
 
-                    /* if the piece is a knight or a king */
-                    if (attackerPiece.Kind == ChessPieceKind.Knight || attackerPiece.Kind == ChessPieceKind.King) return true;
-
-                    int offset = RAYS[index];
-                    int j = attackerSquareIndex + offset;
-
-                    bool obstructingPieceFound = false;
-                    while (j != targetedSquare)
-                    {
-                        if (board[j] != null) { obstructingPieceFound = true; break; }
-                        j += offset;
-                    }
-
-                    if (!obstructingPieceFound) return true;
+                    if (PieceCanAttack(attackerSquareIndex, targetedSquare)) { return true; }
                 }
             }
             return false;
@@ -801,28 +782,10 @@ namespace ChessboardControl
                     }
                     break;
                 case ChessPieceKind.Knight:
-                    if (PieceCanAttack(from, to))
-                    {
-                        validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
-                        moveIdentified = true;
-                    }
-                    break;
                 case ChessPieceKind.Bishop:
-                    if (PieceCanAttack(from, to))
-                    {
-                        validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
-                        moveIdentified = true;
-                    }
-                    break;
                 case ChessPieceKind.Rook:
-                    if (PieceCanAttack(from, to))
-                    {
-                        validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
-                        moveIdentified = true;
-                    }
-                    break;
                 case ChessPieceKind.Queen:
-                    if (PieceCanAttack(from, to))
+                    if (PieceCanAttack(from.x88Notation, to.x88Notation))
                     {
                         validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
                         moveIdentified = true;
@@ -830,7 +793,7 @@ namespace ChessboardControl
                     break;
                 case ChessPieceKind.King:
                     //  Normal move or capture
-                    if (PieceCanAttack(from, to))
+                    if (PieceCanAttack(from.x88Notation, to.x88Notation))
                     {
                         validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
                         moveIdentified = true;
@@ -910,6 +873,7 @@ namespace ChessboardControl
 
             if (moveIdentified)
             {
+                //  Checks if making the move will put the King in Check
                 MovePiece(validationResult);
                 Turn = swap_color(Turn);
                 if (IsKingAttacked(Turn))
@@ -929,14 +893,13 @@ namespace ChessboardControl
                 { validationResult.IllegalReason = ChessMoveRejectedReason.NotMovingLikeThis; }
             }
 
-
             return validationResult;
         }
 
-        private bool PieceCanAttack(ChessSquare from, ChessSquare to)
+        private bool PieceCanAttack(int from, int to)
         {
-            ChessPiece attackerPiece = board[from.x88Notation];
-            int difference = from.x88Notation - to.x88Notation;
+            ChessPiece attackerPiece = board[from];
+            int difference = from - to;
             int index = difference + 119;
 
             if ((ATTACKS[index] & (1 << SHIFTS[attackerPiece.Kind])) != 0)
@@ -960,10 +923,10 @@ namespace ChessboardControl
 
                 //  Sliding pieces
                 int offset = RAYS[index];
-                int j = from.x88Notation + offset;
+                int j = from + offset;
 
                 bool obstructingPieceFound = false;
-                while (j != to.x88Notation)
+                while (j != to)
                 {
                     if (board[j] != null)
                     {
@@ -978,22 +941,11 @@ namespace ChessboardControl
             return false;
         }
 
-        private bool in_check()
-        {
-            return IsKingAttacked(Turn);
-        }
-
-        private bool in_checkmate()
-        {
-            return in_check() && generate_moves().Count == 0;
-        }
-
-        private bool in_stalemate()
-        {
-            return !in_check() && generate_moves().Count == 0;
-        }
-
-        private bool insufficient_material()
+        /// <summary>
+        /// Returns whether there is not enough material to win.
+        /// </summary>
+        /// <returns></returns>
+        public bool InsufficientMaterial()
         {
             Dictionary<ChessPieceKind, int> pieces = new Dictionary<ChessPieceKind, int>();
             Stack<int> bishops = new Stack<int>();
@@ -1050,7 +1002,11 @@ namespace ChessboardControl
             return false;
         }
 
-        private bool in_threefold_repetition()
+        /// <summary>
+        /// Returns whether the same position has repeated three time.
+        /// </summary>
+        /// <returns></returns>
+        public bool InThreefoldRepetition()
         {
             //bool repetition = false;
             //Stack<Move> moves = new Stack<Move>();
@@ -1287,99 +1243,92 @@ namespace ChessboardControl
         /* this function is used to uniquely identify ambiguous moves */
         private string get_disambiguator(Move move, bool sloppy)
         {
-            Stack<Move> moves = generate_moves(new Dictionary<string, object> { { "legal", !sloppy } });
-            int from = move.from;
-            int to = move.to;
-            ChessPieceKind piece = move.piece;
+            //Stack<Move> moves = generate_moves();
+            //int from = move.from;
+            //int to = move.to;
+            //ChessPieceKind piece = move.piece;
 
-            int ambiguities = 0;
-            int same_rank = 0;
-            int same_file = 0;
+            //int ambiguities = 0;
+            //int same_rank = 0;
+            //int same_file = 0;
 
-            for (int i = 0; i < moves.Count; i++)
-            {
-                int ambig_from = moves.ElementAt(i).from;
-                int ambig_to = moves.ElementAt(i).to;
-                ChessPieceKind ambig_piece = moves.ElementAt(i).piece;
+            //for (int i = 0; i < moves.Count; i++)
+            //{
+            //    int ambig_from = moves.ElementAt(i).from;
+            //    int ambig_to = moves.ElementAt(i).to;
+            //    ChessPieceKind ambig_piece = moves.ElementAt(i).piece;
 
-                /* if a move of the same piece type ends on the same to square, we'll
-                * need to add a disambiguator to the algebraic notation
-                */
-                if (piece == ambig_piece && from != ambig_from && to == ambig_to)
-                {
-                    ambiguities++;
-                    if (rank(from) == rank(ambig_from))
-                    {
-                        same_rank++;
-                    }
-                    if (file(from) == file(ambig_from))
-                    {
-                        same_file++;
-                    }
-                }
+            //    /* if a move of the same piece type ends on the same to square, we'll
+            //    * need to add a disambiguator to the algebraic notation
+            //    */
+            //    if (piece == ambig_piece && from != ambig_from && to == ambig_to)
+            //    {
+            //        ambiguities++;
+            //        if (GetRank(from) == GetRank(ambig_from))
+            //        {
+            //            same_rank++;
+            //        }
+            //        if (GetFile(from) == GetFile(ambig_from))
+            //        {
+            //            same_file++;
+            //        }
+            //    }
 
-            }
+            //}
 
-            if (ambiguities > 0)
-            {
-                /* if there exists a similar moving piece on the same rank and file as
-                * the move in question, use the square as the disambiguator
-                */
-                if (same_rank > 0 && same_file > 0)
-                {
-                    return ChessSquare.GetAlgebraicNotation(from);
-                }
+            //if (ambiguities > 0)
+            //{
+            //    /* if there exists a similar moving piece on the same rank and file as
+            //    * the move in question, use the square as the disambiguator
+            //    */
+            //    if (same_rank > 0 && same_file > 0)
+            //    {
+            //        return ChessSquare.GetAlgebraicNotation(from);
+            //    }
 
-                /* if the moving piece rests on the same file, use the rank symbol as the
-                * disambiguator
-                */
-                else if (same_file > 0)
-                {
-                    return ChessSquare.GetAlgebraicNotation(from).Substring(1, 1);
-                }
-                /* else use the file symbol */
-                else
-                {
-                    return ChessSquare.GetAlgebraicNotation(from).Substring(0, 1);
-                }
-            }
+            //    /* if the moving piece rests on the same file, use the rank symbol as the
+            //    * disambiguator
+            //    */
+            //    else if (same_file > 0)
+            //    {
+            //        return ChessSquare.GetAlgebraicNotation(from).Substring(1, 1);
+            //    }
+            //    /* else use the file symbol */
+            //    else
+            //    {
+            //        return ChessSquare.GetAlgebraicNotation(from).Substring(0, 1);
+            //    }
+            //}
             return "";
         }
 
-        private string ascii()
+        /// <summary>
+        /// Returns an ASCII representation of the board.
+        /// </summary>
+        /// <returns></returns>
+        public string Ascii()
         {
-            var s = "   +------------------------+\n";
-            for (var i = SQUARES["a8"]; i <= SQUARES["h1"]; i++)
+            //  Header
+            var ascii = "   +------------------------+\n";
+
+            //  Body
+            for (int rank = 0; rank < 8; rank++)
             {
-                /* display the rank */
-                if (file(i) == 0)
-                {
-                    s += " " + "87654321".Substring(rank(i), 1) + " |";
-                }
+                ascii += $" {8 - rank} |";
 
-                /* empty piece */
-                if (board[i] == null)
+                for (int file = 0; file < 8; file++)
                 {
-                    s += " . ";
+                    var piece = board[16 * rank + file];
+                    ascii += piece == null ? " . " : $" {ChessPieceToFEN(piece)} ";
                 }
-                else
-                {
-                    ChessPieceKind piece = board[i].Kind;
-                    ChessColor color = board[i].Color;
-                    string symbol = ChessPieceToFEN(piece, color);
-                    s += " " + symbol + " ";
-                }
-
-                if (((i + 1) & 0x88) != 0)
-                {
-                    s += "|\n";
-                    i += 8;
-                }
+                ascii += "|\n";
             }
 
-            s += "   +------------------------+\n";
-            s += "     a  b  c  d  e  f  g  h\n";
-            return s;
+            //  Footer
+            ascii += "   +------------------------+\n";
+            ascii += "     a  b  c  d  e  f  g  h\n";
+
+            return ascii;
         }
 
         // convert a move from Standard Algebraic Notation (SAN) to 0x88 coordinates
@@ -1462,12 +1411,12 @@ namespace ChessboardControl
 
         // UTILITY FUNCTIONS
         // ****************************************************************************
-        private static int rank(int i)
+        private static int GetRank(int i)
         {
             return i >> 4;
         }
 
-        private static int file(int i)
+        private static int GetFile(int i)
         {
             return i & 15;
         }
@@ -1487,11 +1436,11 @@ namespace ChessboardControl
         /// </summary>
         /// <param name="piece"></param>
         /// <returns></returns>
-        public static string ChessPieceToFEN(ChessPieceKind piece, ChessColor color = ChessColor.Black)
+        public static string ChessPieceToFEN(ChessPiece piece)
         {
             var result = "";
 
-            switch (piece)
+            switch (piece.Kind)
             {
                 case ChessPieceKind.None:
                     result = "";
@@ -1516,7 +1465,7 @@ namespace ChessboardControl
                     break;
             }
 
-            return (color == ChessColor.White ? result.ToUpper() : result.ToLower());
+            return (piece.Color == ChessColor.White ? result.ToUpper() : result.ToLower());
         }
 
         /// <summary>
@@ -1552,54 +1501,6 @@ namespace ChessboardControl
                     return ChessPieceKind.King;
             }
             throw new ArgumentOutOfRangeException(nameof(fenPiece), $"Unable to translate {fenPiece} into a ChessPiece.");
-        }
-
-
-        // ================================ public API ===============================
-
-        public string Ascii()
-        {
-            return ascii();
-        }
-
-        public bool InCheck()
-        {
-            return IsKingAttacked(Turn);
-        }
-
-        public bool InCheckmate()
-        {
-            return in_checkmate();
-        }
-
-        public bool InStalemate()
-        {
-            return in_stalemate();
-        }
-
-        public bool InsufficientMaterial()
-        {
-            return insufficient_material();
-        }
-
-        public bool InThreefoldRepetition()
-        {
-            return in_threefold_repetition();
-        }
-
-        public bool FiftyMoveRule()
-        {
-            return half_moves >= 100;
-        }
-
-        public bool InDraw()
-        {
-            return (FiftyMoveRule() || in_stalemate() || insufficient_material() || in_threefold_repetition());
-        }
-
-        public bool GameOver()
-        {
-            return (FiftyMoveRule() || in_checkmate() || in_stalemate() || insufficient_material() || in_threefold_repetition());
         }
 
         /// <summary>
@@ -1674,31 +1575,39 @@ namespace ChessboardControl
             return null;
         }
 
-        public string[] LegalMovesAll()
+        /// <summary>
+        /// Returns all legal moves for the current position.
+        /// </summary>
+        /// <returns></returns>
+        public List<ChessMove> GetLegalMoves()
         {
-            //Stack<Move> moves = generate_moves();
-            //Stack<string> legalMoves = new Stack<string>();
-            //for (int i = 0; i < moves.Count; i++)
-            //{
-            //    legalMoves.Push(move_to_san(moves.ElementAt(i), false));
-            //}
-            //return legalMoves.ToArray();
-            return null;
+            return GenerateMoves();
         }
 
-        public string[] LegalMovesSquare(string square)
+        /// <summary>
+        /// Returns all legal moves for the current position for the given square.
+        /// </summary>
+        /// <param name="square">Square for which to compute legal moves.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="square"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the <paramref name="square"/> is empty.</exception>
+        public List<ChessMove> GetLegalMoves(ChessSquare square)
         {
-            //Stack<Move> moves = generate_moves(new Dictionary<string, object>() { { "square", square } });
-            //Stack<string> legalMoves = new Stack<string>();
-            //if (moves != null)
-            //{
-            //    for (int i = 0; i < moves.Count; i++)
-            //    {
-            //        legalMoves.Push(move_to_san(moves.ElementAt(i), false));
-            //    }
-            //}
-            //return legalMoves.ToArray();
-            return null;
+            if(square == null)
+            {
+                throw new ArgumentNullException(nameof(square));
+            }
+            if(board[square.x88Notation] == null)
+            {
+                throw new ArgumentException("There is no piece on the given square.");
+            }
+            var moves = GenerateMove(square.x88Notation);
+            if (square.x88Notation == kings[Turn])
+            {
+                moves.AddRange(GenerateCastling());
+            }
+
+            return moves;
         }
 
         public FENValidationResult ValidateFen(string fen)
