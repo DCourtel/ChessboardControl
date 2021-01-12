@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Board\BoardState.cs" />
     <Compile Include="Board\ChessCastling.cs" />
     <Compile Include="Board\ChessColor.cs" />
     <Compile Include="Board\ChessFile.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="Board\ChessSquare.cs" />
     <Compile Include="Board\ChessMove.cs" />
     <Compile Include="Board\Board.cs" />
+    <Compile Include="Board\UndoMoveResult.cs" />
     <Compile Include="Chessboard.cs">
       <SubType>Component</SubType>
     </Compile>

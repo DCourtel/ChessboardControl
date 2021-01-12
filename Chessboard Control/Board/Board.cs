@@ -1,4 +1,38 @@
-﻿using System;
+﻿/*
+ * Based on the work of dayjur (https://github.com/dayjur/Chess.cs) and Jeff Hlywa (https://github.com/jhlywa/chess.js)
+ * Copyright (c) 2017, Jeff Hlywa (jhlywa@gmail.com) Original author https://github.com/jhlywa/chess.js
+ * Copyright (c) 2018, Richard Foster (richf2000@outlook.com)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ *----------------------------------------------------------------------------
+ * @license
+ * Copyright (c) 2017, Jeff Hlywa (jhlywa@gmail.com)
+ * Released under the BSD license
+ * https://github.com/jhlywa/chess.js/blob/master/LICENSE
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -82,10 +116,8 @@ namespace ChessboardControl
             {ChessPieceKind.King,5},
         };
 
-        private const int RANK_1 = 7;
         private const int RANK_2 = 6;
         private const int RANK_7 = 1;
-        private const int RANK_8 = 0;
 
         private readonly static Dictionary<string, int> SQUARES = new Dictionary<string, int>()
         {
@@ -122,8 +154,9 @@ namespace ChessboardControl
         private int ep_square = EMPTY_SQUARE;
         private int half_moves = 0;
         private int move_number = 1;
-        private Stack<BoardState> history;
+        private Stack<BoardState> MoveHistory;
 
+        #region Constructors
 
         /// <summary>
         /// Creates an instance of the class initialized with the default position.
@@ -142,10 +175,12 @@ namespace ChessboardControl
             LoadFEN(fen);
         }
 
+        #endregion Constructors
+
         #region Properties
 
         /// <summary>
-        /// Gets whether the game is draw by the Fifty moves rule.
+        /// Gets whether the game is draw by the fifty moves rule.
         /// </summary>
         public bool FiftyMoveRule
         {
@@ -201,6 +236,76 @@ namespace ChessboardControl
 
         #endregion Properties
 
+        #region Public Methods
+
+        /// <summary>
+        /// Returns an ASCII representation of the board.
+        /// </summary>
+        /// <returns></returns>
+        public string Ascii()
+        {
+            //  Header
+            var ascii = new System.Text.StringBuilder("   +------------------------+\n");
+
+            //  Body
+            for (int rank = 0; rank < 8; rank++)
+            {
+                ascii.Append($" {8 - rank} |");
+
+                for (int file = 0; file < 8; file++)
+                {
+                    var piece = board[16 * rank + file];
+                    ascii.Append(piece == null ? " . " : $" {ChessPieceToFEN(piece)} ");
+                }
+                ascii.Append("|\n");
+            }
+
+            //  Footer
+            ascii.Append("   +------------------------+\n");
+            ascii.Append("     a  b  c  d  e  f  g  h\n");
+
+            return ascii.ToString();
+        }
+
+        /// <summary>
+        /// Returns the FEN abreviation of the piece.
+        /// </summary>
+        /// <param name="piece"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> is null.</exception>
+        public static string ChessPieceToFEN(ChessPiece piece)
+        {
+            if(piece == null) { throw new ArgumentNullException(nameof(piece)); }
+            var result = "";
+
+            switch (piece.Kind)
+            {
+                case ChessPieceKind.None:
+                    result = "";
+                    break;
+                case ChessPieceKind.Pawn:
+                    result = "p";
+                    break;
+                case ChessPieceKind.Knight:
+                    result = "n";
+                    break;
+                case ChessPieceKind.Bishop:
+                    result = "b";
+                    break;
+                case ChessPieceKind.Rook:
+                    result = "r";
+                    break;
+                case ChessPieceKind.Queen:
+                    result = "q";
+                    break;
+                case ChessPieceKind.King:
+                    result = "k";
+                    break;
+            }
+
+            return (piece.Color == ChessColor.White ? result.ToUpper() : result.ToLower());
+        }
+
         /// <summary>
         /// Resets the board’s state to an empty chessboard.
         /// </summary>
@@ -213,7 +318,42 @@ namespace ChessboardControl
             ep_square = EMPTY_SQUARE;
             half_moves = 0;
             move_number = 1;
-            history = new Stack<BoardState>();
+            MoveHistory = new Stack<BoardState>();
+        }
+
+        /// <summary>
+        /// Returns a ChessPiece corresponding to its FEN abbreviation
+        /// </summary>
+        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
+        /// <returns></returns>
+        public static ChessPieceKind FenToChessPiece(string fenPiece)
+        {
+            return FenToChessPiece(fenPiece[0]);
+        }
+
+        /// <summary>
+        /// Returns the kind of a chess piece corresponding to its FEN abbreviation.
+        /// </summary>
+        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
+        /// <returns></returns>
+        public static ChessPieceKind FenToChessPiece(char fenPiece)
+        {
+            switch (char.ToLower(fenPiece))
+            {
+                case 'p':
+                    return ChessPieceKind.Pawn;
+                case 'n':
+                    return ChessPieceKind.Knight;
+                case 'b':
+                    return ChessPieceKind.Bishop;
+                case 'r':
+                    return ChessPieceKind.Rook;
+                case 'q':
+                    return ChessPieceKind.Queen;
+                case 'k':
+                    return ChessPieceKind.King;
+            }
+            throw new ArgumentOutOfRangeException(nameof(fenPiece), $"Unable to translate {fenPiece} into a ChessPiece.");
         }
 
         /// <summary>
@@ -224,59 +364,6 @@ namespace ChessboardControl
         public ChessCastling GetCastlingRights(ChessColor side)
         {
             return castling[side];
-        }
-
-        /// <summary>
-        /// Resets the board’s state and load the initial position.
-        /// </summary>
-        public void Reset()
-        {
-            LoadFEN(DEFAULT_FEN_POSITION);
-        }
-
-        /// <summary>
-        /// Resets the board’s state and setup pieces as given in the FEN.
-        /// </summary>
-        /// <param name="fen">A string describing the position of pieces in the Forsyth–Edwards Notation (FEN).</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="fen"/> is invalid.</exception>
-        public void LoadFEN(string fen)
-        {
-            if (!FENValidator.Validate(fen).IsValid)
-            {
-                throw new ArgumentException();
-            }
-            var fenObj = new FEN(fen);
-            int square = 0;
-
-            Clear();
-
-            for (var rank = 0; rank < fenObj.Ranks.Length; rank++)
-            {
-                for (int file = 0; file < fenObj.Ranks[rank].Length; file++)
-                {
-                    char piece = fenObj.Ranks[rank][file];
-                    if (char.IsDigit(piece))
-                    {
-                        square += int.Parse(piece.ToString());
-                    }
-                    else
-                    {
-                        ChessColor color = (char.IsUpper(piece)) ? ChessColor.White : ChessColor.Black;
-                        PutPiece(new ChessPiece(FenToChessPiece(piece), color), ChessSquare.GetAlgebraicNotation(square));
-                        square++;
-                    }
-                }
-                square += 8;
-            }
-
-            Turn = fenObj.Turn;
-
-            castling[ChessColor.White] = fenObj.CastlingForWhite;
-            castling[ChessColor.Black] = fenObj.CastlingForBlack;
-
-            ep_square = (fenObj.EnPassant == "-") ? EMPTY_SQUARE : SQUARES[fenObj.EnPassant];
-            half_moves = fenObj.HalfMoveCount;
-            move_number = fenObj.MoveCount;
         }
 
         /// <summary>
@@ -333,327 +420,64 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Gets the piece on the given square or null if there is no piece on the square.
+        /// Returns all legal moves for the current position.
         /// </summary>
-        /// <param name="square"></param>
         /// <returns></returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
-        public ChessPiece GetPieceAt(ChessSquare square)
+        public List<ChessMove> GetLegalMoves()
         {
-            if (square == null) { throw new ArgumentNullException(nameof(square)); }
-
-            return board[square.x88Notation];
+            return GenerateMoves();
         }
 
         /// <summary>
-        /// Puts a piece on the board.
+        /// Returns all legal moves for the current position for the given square.
         /// </summary>
-        /// <param name="piece"></param>
-        /// <param name="square"></param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> or <paramref name="square"/> are null.</exception>
-        /// <exception cref="ArgumentException">Thrown whene <paramref name="square"/> is not valid or when you try to put two king of the same color.</exception>
-        public void PutPiece(ChessPiece piece, string square)
+        /// <param name="square">Square for which to compute legal moves.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="square"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the <paramref name="square"/> is empty.</exception>
+        public List<ChessMove> GetLegalMoves(ChessSquare square)
         {
-            //  Check for valid Piece
-            if (piece == null)
-            {
-                throw new ArgumentNullException(nameof(piece));
-            }
-            //  Check for valid square
             if (square == null)
             {
                 throw new ArgumentNullException(nameof(square));
             }
-            if (!SQUARES.ContainsKey(square))
+            if (board[square.x88Notation] == null)
             {
-                throw new ArgumentException($"'{square}' is not valid coordinates.");
+                throw new ArgumentException("There is no piece on the given square.");
             }
-
-            int sq = SQUARES[square];
-
-            /* don't let the user place more than one king */
-            if (piece.Kind == ChessPieceKind.King
-            && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
+            var moves = GenerateMove(square.x88Notation);
+            if (square.x88Notation == kings[Turn])
             {
-                throw new ArgumentException("You cannot put two kings of the same color.");
-            }
-
-            board[sq] = piece;
-            if (piece.Kind == ChessPieceKind.King)
-            {
-                kings[piece.Color] = sq;
-            }
-        }
-
-        /// <summary>
-        /// Removes a piece from the given square.
-        /// </summary>
-        /// <param name="square">Coordinates of the square where to remove the piece.</param>
-        /// <returns>An instance of the removed piece or null if there was no piece on the square.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
-        public ChessPiece RemovePieceAt(ChessSquare square)
-        {
-            if (square == null) { throw new ArgumentNullException(nameof(square)); }
-
-            ChessPiece piece = GetPieceAt(square);
-            board[square.x88Notation] = null;
-            if (piece != null && piece.Kind == ChessPieceKind.King)
-            {
-                kings[piece.Color] = EMPTY_SQUARE;
-            }
-
-            return piece;
-        }
-
-        private List<ChessMove> GenerateMoves()
-        {
-            List<ChessMove> moves = new List<ChessMove>();
-
-            for (int file = 0; file < 8; file++)
-            {
-                for (int rank = 0; rank < 8; rank++)
-                {
-                    var fromSquareIndex = 16 * rank + file;
-
-                    ChessPiece movingPiece = board[fromSquareIndex];
-                    if (movingPiece == null) continue;
-                    if (movingPiece.Color != Turn) continue;
-                    moves.AddRange(GenerateMove(fromSquareIndex));
-                }
-            }
-
-            moves.AddRange(GenerateCastling());
-
-            return moves;
-        }
-
-        private List<ChessMove> GenerateMove(int fromSquareIndex)
-        {
-            List<ChessMove> moves = new List<ChessMove>();
-            ChessColor them = swap_color(Turn);
-            Dictionary<ChessColor, int> second_rank = new Dictionary<ChessColor, int>() { { ChessColor.Black, RANK_7 }, { ChessColor.White, RANK_2 } };
-            ChessPiece movingPiece = board[fromSquareIndex];
-
-            if (movingPiece.Kind == ChessPieceKind.Pawn)
-            {
-                /* single square, non-capturing */
-                int toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveOneSquare];
-                if (board[toSquareIndex] == null)
-                {
-                    var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
-
-                    if (move.IsValid)
-                    {
-                        moves.Add(move);
-                    }
-                    /* double square */
-                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveTwoSquare];
-                    if (second_rank[Turn] == GetRank(fromSquareIndex) && board[toSquareIndex] == null)
-                    {
-                        move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
-
-                        if (move.IsValid)
-                        {
-                            moves.Add(move);
-                        }
-                    }
-                }
-
-                /* pawn captures */
-                for (int j = 2; j < 4; j++)
-                {
-                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][j];
-                    if ((toSquareIndex & 0x88) != 0) continue;
-                    if (board[toSquareIndex] != null && board[toSquareIndex].Color == them)
-                    {
-                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
-
-                        if (move.IsValid)
-                        {
-                            moves.Add(move);
-                        }
-                    }
-                    else if (toSquareIndex == ep_square)
-                    {
-                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
-
-                        if (move.IsValid)
-                        {
-                            moves.Add(move);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (int j = 0; j < PIECE_OFFSETS[movingPiece.Kind].Length; j++)
-                {
-                    int offset = PIECE_OFFSETS[movingPiece.Kind][j];
-                    int square = fromSquareIndex;
-                    while (true)
-                    {
-                        square += offset;
-                        if ((square & 0x88) != 0) break;
-                        if (board[square] == null)
-                        {
-                            var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
-
-                            if (move.IsValid)
-                            {
-                                moves.Add(move);
-                            }
-                        }
-                        else
-                        {
-                            if (board[square].Color == them)
-                            {
-                                var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
-
-                                if (move.IsValid)
-                                {
-                                    moves.Add(move);
-                                }
-                            }
-                            break;
-                        }
-
-                        /* break, if knight or king */
-                        if (movingPiece.Kind == ChessPieceKind.Knight || movingPiece.Kind == ChessPieceKind.King) break;
-                    }
-                }
+                moves.AddRange(GenerateCastling());
             }
 
             return moves;
         }
 
-        private List<ChessMove> GenerateCastling()
+        public string[] GetMoveHistory()
         {
-            List<ChessMove> moves = new List<ChessMove>();
-            ChessColor them = swap_color(Turn);
-
-            /* king-side castling */
-            if ((castling[Turn] & ChessCastling.KingSide) != 0)
-            {
-                int castling_from = kings[Turn];
-                int castling_to = castling_from + 2;
-                if (board[castling_from + 1] == null && board[castling_to] == null &&
-                !IsSquareAttacked(them, kings[Turn]) &&
-                !IsSquareAttacked(them, castling_from + 1) &&
-                !IsSquareAttacked(them, castling_to))
-                {
-                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
-
-                    if (move.IsValid)
-                    {
-                        moves.Add(move);
-                    }
-                }
-            }
-
-            /* queen-side castling */
-            if ((castling[Turn] & ChessCastling.QueenSide) != 0)
-            {
-                int castling_from = kings[Turn];
-                int castling_to = castling_from - 2;
-                if (board[castling_from - 1] == null &&
-                board[castling_from - 2] == null &&
-                board[castling_from - 3] == null &&
-                !IsSquareAttacked(them, kings[Turn]) &&
-                !IsSquareAttacked(them, castling_from - 1) &&
-                !IsSquareAttacked(them, castling_to))
-                {
-                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
-
-                    if (move.IsValid)
-                    {
-                        moves.Add(move);
-                    }
-                }
-            }
-
-            return moves;
-        }
-
-        private string move_to_san(Move move, bool sloppy = false)
-        {
-            //string output = "";
-            //if ((move.flags & ChessMoveType.KSide_Castle) != 0)
+            //Stack<Move> reversed_history = new Stack<Move>();
+            //Stack<string> move_history = new Stack<string>();
+            //while (history.Count > 0)
             //{
-            //    output = "O-O";
-            //}
-            //else if ((move.flags & ChessMoveType.QSide_Castle) != 0)
-            //{
-            //    output = "O-O-O";
-            //}
-            //else
-            //{
-            //    string disambiguator = get_disambiguator(move, sloppy);
-            //    if (move.piece != ChessPieceKind.Pawn)
-            //    {
-            //        output += ChessPieceToFEN(move.piece, ChessColor.White) + disambiguator;
-            //    }
-            //    if ((move.flags & (ChessMoveType.Capture | ChessMoveType.EP_Capture)) != 0)
-            //    {
-            //        if (move.piece == ChessPieceKind.Pawn)
-            //        {
-            //            output += algebraic(move.from).Substring(0, 1);
-            //        }
-            //        output += "x";
-            //    }
-
-            //    output += algebraic(move.to);
-
-            //    if ((move.flags & ChessMoveType.Promotion) != 0)
-            //    {
-            //        output += "=" + ChessPieceToFEN(move.promotion, ChessColor.White);
-            //    }
+            //    reversed_history.Push(undo_move());
             //}
 
-            //MovePiece(move);
-            //if (in_check())
+            //while (reversed_history.Count > 0)
             //{
-            //    if (in_checkmate())
-            //    {
-            //        output += "#";
-            //    }
-            //    else
-            //    {
-            //        output += "+";
-            //    }
+            //    var move = reversed_history.Pop();
+            //    move_history.Push(move_to_san(move));
+            //    MovePiece(move, move.promotion);
             //}
-            //undo_move();
 
-            //return output;
+            //string[] h = new string[move_history.Count];
+            //for (int i = h.Length - 1; i > -1; i--)
+            //{
+            //    h[i] = move_history.Pop();
+            //}
+
+            //return h;
             return null;
-        }
-
-        // parses all of the decorators out of a SAN string
-        private string stripped_san(string move)
-        {
-            string rt = Regex.Replace(move, @"=", "");
-            rt = Regex.Replace(rt, @"[+#]?[?!]*$", "");
-            return rt;
-        }
-
-        private bool IsSquareAttacked(ChessColor attackerColor, int targetedSquare)
-        {
-            for (int rank = 0; rank < 8; rank++)
-            {
-                for (int file = 0; file < 8; file++)
-                {
-                    int attackerSquareIndex = rank * 16 + file;
-                    //  No piece on the square or same side
-                    if (board[attackerSquareIndex] == null || board[attackerSquareIndex].Color != attackerColor) continue;
-
-                    if (PieceCanAttack(attackerSquareIndex, targetedSquare)) { return true; }
-                }
-            }
-            return false;
-        }
-
-        private bool IsKingAttacked(ChessColor kingColor)
-        {
-            return IsSquareAttacked(swap_color(kingColor), kings[kingColor]);
         }
 
         public ChessMove GetMoveValidity(ChessSquare from, ChessSquare to)
@@ -788,6 +612,7 @@ namespace ChessboardControl
                     if (PieceCanAttack(from.x88Notation, to.x88Notation))
                     {
                         validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
+                        validationResult.CapturedPiece = capturedPiece != null ? capturedPiece.Kind : ChessPieceKind.None;
                         moveIdentified = true;
                     }
                     break;
@@ -796,6 +621,7 @@ namespace ChessboardControl
                     if (PieceCanAttack(from.x88Notation, to.x88Notation))
                     {
                         validationResult.MoveKind = capturedPiece != null ? ChessMoveType.Capture : ChessMoveType.Normal;
+                        validationResult.CapturedPiece = capturedPiece != null ? capturedPiece.Kind : ChessPieceKind.None;
                         moveIdentified = true;
                     }
                     else
@@ -875,7 +701,7 @@ namespace ChessboardControl
             {
                 //  Checks if making the move will put the King in Check
                 MovePiece(validationResult);
-                Turn = swap_color(Turn);
+                Turn = SwapColor(Turn);
                 if (IsKingAttacked(Turn))
                 {
                     validationResult.IllegalReason = ChessMoveRejectedReason.PutKingInCheck;
@@ -885,7 +711,7 @@ namespace ChessboardControl
                     validationResult.IsValid = true;
                     validationResult.IllegalReason = ChessMoveRejectedReason.None;
                 }
-                undo_move();
+                UndoMove();
             }
             else
             {
@@ -896,49 +722,17 @@ namespace ChessboardControl
             return validationResult;
         }
 
-        private bool PieceCanAttack(int from, int to)
+        /// <summary>
+        /// Gets the piece on the given square or null if there is no piece on the square.
+        /// </summary>
+        /// <param name="square"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
+        public ChessPiece GetPieceAt(ChessSquare square)
         {
-            ChessPiece attackerPiece = board[from];
-            int difference = from - to;
-            int index = difference + 119;
+            if (square == null) { throw new ArgumentNullException(nameof(square)); }
 
-            if ((ATTACKS[index] & (1 << SHIFTS[attackerPiece.Kind])) != 0)
-            {
-                //  Pawns
-                if (attackerPiece.Kind == ChessPieceKind.Pawn)
-                {
-                    if (difference > 0)
-                    {
-                        if (attackerPiece.Color == ChessColor.White) return true;
-                    }
-                    else
-                    {
-                        if (attackerPiece.Color == ChessColor.Black) return true;
-                    }
-                    return false;
-                }
-
-                // Knights and Kings
-                if (attackerPiece.Kind == ChessPieceKind.Knight || attackerPiece.Kind == ChessPieceKind.King) return true;
-
-                //  Sliding pieces
-                int offset = RAYS[index];
-                int j = from + offset;
-
-                bool obstructingPieceFound = false;
-                while (j != to)
-                {
-                    if (board[j] != null)
-                    {
-                        obstructingPieceFound = true;
-                        break;
-                    }
-                    j += offset;
-                }
-
-                if (!obstructingPieceFound) return true;
-            }
-            return false;
+            return board[square.x88Notation];
         }
 
         /// <summary>
@@ -1045,26 +839,379 @@ namespace ChessboardControl
             return true;
         }
 
-        private void push(ChessMove move)
+        /// <summary>
+        /// Resets the board’s state and setup pieces as given in the FEN.
+        /// </summary>
+        /// <param name="fen">A string describing the position of pieces in the Forsyth–Edwards Notation (FEN).</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="fen"/> is invalid.</exception>
+        public void LoadFEN(string fen)
         {
-            BoardState historyMove = new BoardState()
+            if (!FENValidator.Validate(fen).IsValid)
             {
-                move = move,
-                kings = new Dictionary<ChessColor, int>() { { ChessColor.Black, kings[ChessColor.Black] }, { ChessColor.White, kings[ChessColor.White] } },
-                turn = Turn,
-                castling = new Dictionary<ChessColor, ChessCastling>() { { ChessColor.Black, castling[ChessColor.Black] }, { ChessColor.White, castling[ChessColor.White] } },
-                ep_square = ep_square,
-                half_moves = half_moves,
-                move_number = move_number
+                throw new ArgumentException();
+            }
+            var fenObj = new FEN(fen);
+            int square = 0;
+
+            Clear();
+
+            for (var rank = 0; rank < fenObj.Ranks.Length; rank++)
+            {
+                for (int file = 0; file < fenObj.Ranks[rank].Length; file++)
+                {
+                    char piece = fenObj.Ranks[rank][file];
+                    if (char.IsDigit(piece))
+                    {
+                        square += int.Parse(piece.ToString());
+                    }
+                    else
+                    {
+                        ChessColor color = (char.IsUpper(piece)) ? ChessColor.White : ChessColor.Black;
+                        PutPiece(new ChessPiece(FenToChessPiece(piece), color), ChessSquare.GetAlgebraicNotation(square));
+                        square++;
+                    }
+                }
+                square += 8;
+            }
+
+            Turn = fenObj.Turn;
+
+            castling[ChessColor.White] = fenObj.CastlingForWhite;
+            castling[ChessColor.Black] = fenObj.CastlingForBlack;
+
+            ep_square = (fenObj.EnPassant == "-") ? EMPTY_SQUARE : SQUARES[fenObj.EnPassant];
+            half_moves = fenObj.HalfMoveCount;
+            move_number = fenObj.MoveCount;
+        }
+
+        /// <summary>
+        /// Moves a piece from one square to another square.
+        /// </summary>
+        /// <param name="move">An instance of a validated move. <see cref="GetMoveValidity(ChessSquare, ChessSquare)(ChessSquare, ChessSquare)"/></param>
+        /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
+        public void Move(ChessMove move)
+        {
+            if (!move.IsValid)
+            {
+                throw new IllegalMoveException(move);
+            }
+            MovePiece(move);
+        }
+
+        /// <summary>
+        /// Move a piece from one square to another square.
+        /// </summary>
+        /// <param name="from">Origin square.</param>
+        /// <param name="to">Destination square.</param>
+        /// <param name="promotedTo">Type of piece used in case of a pawn promotion.</param>
+        /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
+        public void Move(ChessSquare from, ChessSquare to, ChessPieceKind promotedTo = ChessPieceKind.Queen)
+        {
+            var moveValidation = GetMoveValidity(from, to);
+            moveValidation.PromotedTo = promotedTo;
+
+            Move(moveValidation);
+        }
+
+        /// <summary>
+        /// Puts a piece on the board.
+        /// </summary>
+        /// <param name="piece"></param>
+        /// <param name="square"></param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> or <paramref name="square"/> are null.</exception>
+        /// <exception cref="ArgumentException">Thrown whene <paramref name="square"/> is not valid or when you try to put two king of the same color.</exception>
+        public void PutPiece(ChessPiece piece, string square)
+        {
+            //  Check for valid Piece
+            if (piece == null)
+            {
+                throw new ArgumentNullException(nameof(piece));
+            }
+            //  Check for valid square
+            if (square == null)
+            {
+                throw new ArgumentNullException(nameof(square));
+            }
+            if (!SQUARES.ContainsKey(square))
+            {
+                throw new ArgumentException($"'{square}' is not valid coordinates.");
+            }
+
+            int sq = SQUARES[square];
+
+            /* don't let the user place more than one king */
+            if (piece.Kind == ChessPieceKind.King
+            && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
+            {
+                throw new ArgumentException("You cannot put two kings of the same color.");
+            }
+
+            board[sq] = piece;
+            if (piece.Kind == ChessPieceKind.King)
+            {
+                kings[piece.Color] = sq;
+            }
+        }
+
+        /// <summary>
+        /// Resets the board’s state and load the initial position.
+        /// </summary>
+        public void Reset()
+        {
+            LoadFEN(DEFAULT_FEN_POSITION);
+        }
+
+        /// <summary>
+        /// Removes a piece from the given square.
+        /// </summary>
+        /// <param name="square">Coordinates of the square where to remove the piece.</param>
+        /// <returns>An instance of the removed piece or null if there was no piece on the square.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
+        public ChessPiece RemovePieceAt(ChessSquare square)
+        {
+            if (square == null) { throw new ArgumentNullException(nameof(square)); }
+
+            ChessPiece piece = GetPieceAt(square);
+            board[square.x88Notation] = null;
+            if (piece != null && piece.Kind == ChessPieceKind.King)
+            {
+                kings[piece.Color] = EMPTY_SQUARE;
+            }
+
+            return piece;
+        }
+
+        public UndoMoveResult Undo()
+        {
+            ChessMove move = UndoMove();
+            if (move == null)
+            {
+                return null;
+            }
+
+            return new UndoMoveResult()
+            {
+                MovedPieceColor = Turn,
+                From = move.From,
+                To = move.To,
+                MovedPiece = move.MovingPiece
             };
-            history.Push(historyMove);
+        }
+
+        /// <summary>
+        /// Checks whether a FEN string is valid or not.
+        /// </summary>
+        /// <param name="fen"></param>
+        /// <returns></returns>
+        public FENValidationResult ValidateFen(string fen)
+        {
+            return FENValidator.Validate(fen);
+        }
+
+        #endregion Public Methods
+
+        #region Private Methods
+
+        private List<ChessMove> GenerateCastling()
+        {
+            List<ChessMove> moves = new List<ChessMove>();
+            ChessColor them = SwapColor(Turn);
+
+            /* king-side castling */
+            if ((castling[Turn] & ChessCastling.KingSide) != 0)
+            {
+                int castling_from = kings[Turn];
+                int castling_to = castling_from + 2;
+                if (board[castling_from + 1] == null && board[castling_to] == null &&
+                !IsSquareAttacked(them, kings[Turn]) &&
+                !IsSquareAttacked(them, castling_from + 1) &&
+                !IsSquareAttacked(them, castling_to))
+                {
+                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
+
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                }
+            }
+
+            /* queen-side castling */
+            if ((castling[Turn] & ChessCastling.QueenSide) != 0)
+            {
+                int castling_from = kings[Turn];
+                int castling_to = castling_from - 2;
+                if (board[castling_from - 1] == null &&
+                board[castling_from - 2] == null &&
+                board[castling_from - 3] == null &&
+                !IsSquareAttacked(them, kings[Turn]) &&
+                !IsSquareAttacked(them, castling_from - 1) &&
+                !IsSquareAttacked(them, castling_to))
+                {
+                    var move = GetMoveValidity(new ChessSquare(kings[Turn]), new ChessSquare(castling_to));
+
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        private List<ChessMove> GenerateMove(int fromSquareIndex)
+        {
+            List<ChessMove> moves = new List<ChessMove>();
+            ChessColor them = SwapColor(Turn);
+            Dictionary<ChessColor, int> second_rank = new Dictionary<ChessColor, int>() { { ChessColor.Black, RANK_7 }, { ChessColor.White, RANK_2 } };
+            ChessPiece movingPiece = board[fromSquareIndex];
+
+            if (movingPiece.Kind == ChessPieceKind.Pawn)
+            {
+                /* single square, non-capturing */
+                int toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveOneSquare];
+                if (board[toSquareIndex] == null)
+                {
+                    var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                    if (move.IsValid)
+                    {
+                        moves.Add(move);
+                    }
+                    /* double square */
+                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][(int)PawnMove.MoveTwoSquare];
+                    if (second_rank[Turn] == GetRank(fromSquareIndex) && board[toSquareIndex] == null)
+                    {
+                        move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
+                }
+
+                /* pawn captures */
+                for (int j = 2; j < 4; j++)
+                {
+                    toSquareIndex = fromSquareIndex + PAWN_MOVE_OFFSETS[Turn][j];
+                    if ((toSquareIndex & 0x88) != 0) continue;
+                    if (board[toSquareIndex] != null && board[toSquareIndex].Color == them)
+                    {
+                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
+                    else if (toSquareIndex == ep_square)
+                    {
+                        var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(toSquareIndex));
+
+                        if (move.IsValid)
+                        {
+                            moves.Add(move);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int j = 0; j < PIECE_OFFSETS[movingPiece.Kind].Length; j++)
+                {
+                    int offset = PIECE_OFFSETS[movingPiece.Kind][j];
+                    int square = fromSquareIndex;
+                    while (true)
+                    {
+                        square += offset;
+                        if ((square & 0x88) != 0) break;
+                        if (board[square] == null)
+                        {
+                            var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
+
+                            if (move.IsValid)
+                            {
+                                moves.Add(move);
+                            }
+                        }
+                        else
+                        {
+                            if (board[square].Color == them)
+                            {
+                                var move = GetMoveValidity(new ChessSquare(fromSquareIndex), new ChessSquare(square));
+
+                                if (move.IsValid)
+                                {
+                                    moves.Add(move);
+                                }
+                            }
+                            break;
+                        }
+
+                        /* break, if knight or king */
+                        if (movingPiece.Kind == ChessPieceKind.Knight || movingPiece.Kind == ChessPieceKind.King) break;
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        private List<ChessMove> GenerateMoves()
+        {
+            List<ChessMove> moves = new List<ChessMove>();
+
+            for (int file = 0; file < 8; file++)
+            {
+                for (int rank = 0; rank < 8; rank++)
+                {
+                    var fromSquareIndex = 16 * rank + file;
+
+                    ChessPiece movingPiece = board[fromSquareIndex];
+                    if (movingPiece == null) continue;
+                    if (movingPiece.Color != Turn) continue;
+                    moves.AddRange(GenerateMove(fromSquareIndex));
+                }
+            }
+
+            moves.AddRange(GenerateCastling());
+
+            return moves;
+        }
+
+        private static int GetRank(int i)
+        {
+            return i >> 4;
+        }
+
+        private bool IsKingAttacked(ChessColor kingColor)
+        {
+            return IsSquareAttacked(SwapColor(kingColor), kings[kingColor]);
+        }
+
+        private bool IsSquareAttacked(ChessColor attackerColor, int targetedSquare)
+        {
+            for (int rank = 0; rank < 8; rank++)
+            {
+                for (int file = 0; file < 8; file++)
+                {
+                    int attackerSquareIndex = rank * 16 + file;
+                    //  No piece on the square or same side
+                    if (board[attackerSquareIndex] == null || board[attackerSquareIndex].Color != attackerColor) continue;
+
+                    if (PieceCanAttack(attackerSquareIndex, targetedSquare)) { return true; }
+                }
+            }
+            return false;
         }
 
         private void MovePiece(ChessMove move)
         {
             ChessColor us = Turn;
-            ChessColor them = swap_color(us);
-            push(move);
+            ChessColor them = SwapColor(us);
+            PushToMoveHistory(move);
 
             board[move.To.x88Notation] = board[move.From.x88Notation];
             board[move.From.x88Notation] = null;
@@ -1173,28 +1320,93 @@ namespace ChessboardControl
             {
                 move_number++;
             }
-            Turn = swap_color(Turn);
+            Turn = SwapColor(Turn);
         }
 
-        private ChessMove undo_move()
+        private bool PieceCanAttack(int from, int to)
         {
-            if (history.Count == 0)
+            ChessPiece attackerPiece = board[from];
+            int difference = from - to;
+            int index = difference + 119;
+
+            if ((ATTACKS[index] & (1 << SHIFTS[attackerPiece.Kind])) != 0)
+            {
+                //  Pawns
+                if (attackerPiece.Kind == ChessPieceKind.Pawn)
+                {
+                    if (difference > 0)
+                    {
+                        if (attackerPiece.Color == ChessColor.White) return true;
+                    }
+                    else
+                    {
+                        if (attackerPiece.Color == ChessColor.Black) return true;
+                    }
+                    return false;
+                }
+
+                // Knights and Kings
+                if (attackerPiece.Kind == ChessPieceKind.Knight || attackerPiece.Kind == ChessPieceKind.King) return true;
+
+                //  Sliding pieces
+                int offset = RAYS[index];
+                int j = from + offset;
+
+                bool obstructingPieceFound = false;
+                while (j != to)
+                {
+                    if (board[j] != null)
+                    {
+                        obstructingPieceFound = true;
+                        break;
+                    }
+                    j += offset;
+                }
+
+                if (!obstructingPieceFound) return true;
+            }
+            return false;
+        }
+
+        private void PushToMoveHistory(ChessMove move)
+        {
+            BoardState historyMove = new BoardState()
+            {
+                Move = move,
+                Kings = new Dictionary<ChessColor, int>() { { ChessColor.Black, kings[ChessColor.Black] }, { ChessColor.White, kings[ChessColor.White] } },
+                Turn = Turn,
+                Castling = new Dictionary<ChessColor, ChessCastling>() { { ChessColor.Black, castling[ChessColor.Black] }, { ChessColor.White, castling[ChessColor.White] } },
+                EP_Square = ep_square,
+                Half_MoveCount = half_moves,
+                MoveCount = move_number
+            };
+            MoveHistory.Push(historyMove);
+        }
+
+        private static ChessColor SwapColor(ChessColor c)
+        {
+            return c == ChessColor.White ? ChessColor.Black : ChessColor.White;
+        }
+
+        private ChessMove UndoMove()
+        {
+            if (MoveHistory.Count == 0)
             {
                 return null;
             }
-            BoardState old = history.Pop();
+            BoardState old = MoveHistory.Pop();
             if (old == null) { return null; }
 
-            ChessMove move = old.move;
-            kings = old.kings;
-            Turn = old.turn;
-            castling = old.castling;
-            ep_square = old.ep_square;
-            half_moves = old.half_moves;
-            move_number = old.move_number;
+            ChessMove move = old.Move;
+            kings = old.Kings;
+            Turn = old.Turn;
+            castling = old.Castling;
+            ep_square = old.EP_Square;
+            half_moves = old.Half_MoveCount;
+            move_number = old.MoveCount;
 
             ChessColor us = Turn;
-            ChessColor them = swap_color(Turn);
+            ChessColor them = SwapColor(Turn);
 
             board[move.From.x88Notation] = board[move.To.x88Notation];
             board[move.From.x88Notation].Kind = move.MovingPiece; // to undo any promotions
@@ -1240,414 +1452,6 @@ namespace ChessboardControl
             return move;
         }
 
-        /* this function is used to uniquely identify ambiguous moves */
-        private string get_disambiguator(Move move, bool sloppy)
-        {
-            //Stack<Move> moves = generate_moves();
-            //int from = move.from;
-            //int to = move.to;
-            //ChessPieceKind piece = move.piece;
-
-            //int ambiguities = 0;
-            //int same_rank = 0;
-            //int same_file = 0;
-
-            //for (int i = 0; i < moves.Count; i++)
-            //{
-            //    int ambig_from = moves.ElementAt(i).from;
-            //    int ambig_to = moves.ElementAt(i).to;
-            //    ChessPieceKind ambig_piece = moves.ElementAt(i).piece;
-
-            //    /* if a move of the same piece type ends on the same to square, we'll
-            //    * need to add a disambiguator to the algebraic notation
-            //    */
-            //    if (piece == ambig_piece && from != ambig_from && to == ambig_to)
-            //    {
-            //        ambiguities++;
-            //        if (GetRank(from) == GetRank(ambig_from))
-            //        {
-            //            same_rank++;
-            //        }
-            //        if (GetFile(from) == GetFile(ambig_from))
-            //        {
-            //            same_file++;
-            //        }
-            //    }
-
-            //}
-
-            //if (ambiguities > 0)
-            //{
-            //    /* if there exists a similar moving piece on the same rank and file as
-            //    * the move in question, use the square as the disambiguator
-            //    */
-            //    if (same_rank > 0 && same_file > 0)
-            //    {
-            //        return ChessSquare.GetAlgebraicNotation(from);
-            //    }
-
-            //    /* if the moving piece rests on the same file, use the rank symbol as the
-            //    * disambiguator
-            //    */
-            //    else if (same_file > 0)
-            //    {
-            //        return ChessSquare.GetAlgebraicNotation(from).Substring(1, 1);
-            //    }
-            //    /* else use the file symbol */
-            //    else
-            //    {
-            //        return ChessSquare.GetAlgebraicNotation(from).Substring(0, 1);
-            //    }
-            //}
-            return "";
-        }
-
-        /// <summary>
-        /// Returns an ASCII representation of the board.
-        /// </summary>
-        /// <returns></returns>
-        public string Ascii()
-        {
-            //  Header
-            var ascii = "   +------------------------+\n";
-
-            //  Body
-            for (int rank = 0; rank < 8; rank++)
-            {
-                ascii += $" {8 - rank} |";
-
-                for (int file = 0; file < 8; file++)
-                {
-                    var piece = board[16 * rank + file];
-                    ascii += piece == null ? " . " : $" {ChessPieceToFEN(piece)} ";
-                }
-                ascii += "|\n";
-            }
-
-            //  Footer
-            ascii += "   +------------------------+\n";
-            ascii += "     a  b  c  d  e  f  g  h\n";
-
-            return ascii;
-        }
-
-        // convert a move from Standard Algebraic Notation (SAN) to 0x88 coordinates
-        private Move move_from_san(string move, bool sloppy)
-        {
-            //// strip off any move decorations: e.g Nf3+?!
-            //string clean_move = stripped_san(move);
-            //// if we're using the sloppy parser run a regex to grab piece, to, and from
-            //// this should parse invalid SAN like: Pe2-e4, Rc1c4, Qf3xf7
-            //string[] matches = { };
-            //string piece = null;
-            //string from = null;
-            //string to = null;
-            //string promotion = null;
-            //if (sloppy)
-            //{
-            //    Regex rx = new Regex(@"([pnbrqkPNBRQK])?([a-h][1-8])x?-?([a-h][1-8])([qrbnQRBN])?");
-            //    matches = rx.Split(clean_move);
-            //    if (matches.Length > 1)
-            //    {
-            //        if (matches.Length == 4)
-            //        {
-            //            from = matches[1];
-            //            to = matches[2];
-            //        }
-
-            //        if (matches.Length == 5)
-            //        {
-            //            if (matches[1].Length == 1)
-            //            {
-            //                piece = matches[1];
-            //                from = matches[2];
-            //                to = matches[3];
-            //            }
-            //            else
-            //            {
-            //                from = matches[1];
-            //                to = matches[2];
-            //                promotion = matches[3];
-            //            }
-            //        }
-
-            //        if (matches.Length == 6)
-            //        {
-            //            piece = matches[1];
-            //            from = matches[2];
-            //            to = matches[3];
-            //            promotion = matches[4];
-            //        }
-
-            //    }
-            //}
-
-            //Stack<Move> moves = generate_moves(); // edgeway- get all legal moves for current player
-
-            //for (int i = 0; i < moves.Count; i++)
-            //{
-            //    // try the strict parser first, then the sloppy parser if requested
-            //    // by the user
-            //    if ((clean_move == stripped_san(move_to_san(moves.ElementAt(i)))) || (sloppy && clean_move == stripped_san(move_to_san(moves.ElementAt(i), true))))
-            //    {
-            //        return moves.ElementAt(i);
-            //    }
-            //    else
-            //    {
-            //        if (matches.Length > 1 &&
-            //        (string.IsNullOrEmpty(piece) || FenToChessPiece(piece) == moves.ElementAt(i).piece) &&
-            //        SQUARES[from] == moves.ElementAt(i).from &&
-            //        SQUARES[to] == moves.ElementAt(i).to &&
-            //        (string.IsNullOrEmpty(promotion) || FenToChessPiece(promotion) == moves.ElementAt(i).promotion))
-            //        {
-            //            return moves.ElementAt(i);
-            //        }
-            //    }
-            //}
-            return null;
-        }
-
-
-
-        // UTILITY FUNCTIONS
-        // ****************************************************************************
-        private static int GetRank(int i)
-        {
-            return i >> 4;
-        }
-
-        private static int GetFile(int i)
-        {
-            return i & 15;
-        }
-
-        private static ChessColor swap_color(ChessColor c)
-        {
-            return c == ChessColor.White ? ChessColor.Black : ChessColor.White;
-        }
-
-        private static bool isNAN(string i)
-        {
-            return !int.TryParse(i, out _);
-        }
-
-        /// <summary>
-        /// Returns the FEN abreviation of the piece.
-        /// </summary>
-        /// <param name="piece"></param>
-        /// <returns></returns>
-        public static string ChessPieceToFEN(ChessPiece piece)
-        {
-            var result = "";
-
-            switch (piece.Kind)
-            {
-                case ChessPieceKind.None:
-                    result = "";
-                    break;
-                case ChessPieceKind.Pawn:
-                    result = "p";
-                    break;
-                case ChessPieceKind.Knight:
-                    result = "n";
-                    break;
-                case ChessPieceKind.Bishop:
-                    result = "b";
-                    break;
-                case ChessPieceKind.Rook:
-                    result = "r";
-                    break;
-                case ChessPieceKind.Queen:
-                    result = "q";
-                    break;
-                case ChessPieceKind.King:
-                    result = "k";
-                    break;
-            }
-
-            return (piece.Color == ChessColor.White ? result.ToUpper() : result.ToLower());
-        }
-
-        /// <summary>
-        /// Returns a ChessPiece corresponding to its FEN abbreviation
-        /// </summary>
-        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
-        /// <returns></returns>
-        public static ChessPieceKind FenToChessPiece(string fenPiece)
-        {
-            return FenToChessPiece(fenPiece[0]);
-        }
-
-        /// <summary>
-        /// Returns the kind of a chess piece corresponding to its FEN abbreviation.
-        /// </summary>
-        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
-        /// <returns></returns>
-        public static ChessPieceKind FenToChessPiece(char fenPiece)
-        {
-            switch (char.ToLower(fenPiece))
-            {
-                case 'p':
-                    return ChessPieceKind.Pawn;
-                case 'n':
-                    return ChessPieceKind.Knight;
-                case 'b':
-                    return ChessPieceKind.Bishop;
-                case 'r':
-                    return ChessPieceKind.Rook;
-                case 'q':
-                    return ChessPieceKind.Queen;
-                case 'k':
-                    return ChessPieceKind.King;
-            }
-            throw new ArgumentOutOfRangeException(nameof(fenPiece), $"Unable to translate {fenPiece} into a ChessPiece.");
-        }
-
-        /// <summary>
-        /// Move a piece from one square to another square.
-        /// </summary>
-        /// <param name="move">An instance of a validated move. <see cref="GetMoveValidity(ChessSquare, ChessSquare)(ChessSquare, ChessSquare)"/></param>
-        /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
-        public void Move(ChessMove move)
-        {
-            if (!move.IsValid)
-            {
-                throw new IllegalMoveException(move);
-            }
-            MovePiece(move);
-        }
-
-        /// <summary>
-        /// Move a piece from one square to another square.
-        /// </summary>
-        /// <param name="from">Origin square.</param>
-        /// <param name="to">Destination square.</param>
-        /// <param name="promotedTo">Type of piece used in case of a pawn promotion.</param>
-        /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
-        public void Move(ChessSquare from, ChessSquare to, ChessPieceKind promotedTo = ChessPieceKind.Queen)
-        {
-            var moveValidation = GetMoveValidity(from, to);
-            moveValidation.PromotedTo = promotedTo;
-
-            Move(moveValidation);
-        }
-
-        public string[] MoveHistory()
-        {
-            //Stack<Move> reversed_history = new Stack<Move>();
-            //Stack<string> move_history = new Stack<string>();
-            //while (history.Count > 0)
-            //{
-            //    reversed_history.Push(undo_move());
-            //}
-
-            //while (reversed_history.Count > 0)
-            //{
-            //    var move = reversed_history.Pop();
-            //    move_history.Push(move_to_san(move));
-            //    MovePiece(move, move.promotion);
-            //}
-
-            //string[] h = new string[move_history.Count];
-            //for (int i = h.Length - 1; i > -1; i--)
-            //{
-            //    h[i] = move_history.Pop();
-            //}
-
-            //return h;
-            return null;
-        }
-
-        public UndoMoveResult Undo()
-        {
-            //Move move = undo_move();
-            //if (move == null)
-            //{
-            //    return null;
-            //}
-
-            //UndoMoveResult undoMoveArgs = new UndoMoveResult();
-            //undoMoveArgs.color = move.color;
-            //undoMoveArgs.from = algebraic(move.from);
-            //undoMoveArgs.to = algebraic(move.to);
-            //undoMoveArgs.piece = move.piece;
-            //return undoMoveArgs;
-            return null;
-        }
-
-        /// <summary>
-        /// Returns all legal moves for the current position.
-        /// </summary>
-        /// <returns></returns>
-        public List<ChessMove> GetLegalMoves()
-        {
-            return GenerateMoves();
-        }
-
-        /// <summary>
-        /// Returns all legal moves for the current position for the given square.
-        /// </summary>
-        /// <param name="square">Square for which to compute legal moves.</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="square"/> is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the <paramref name="square"/> is empty.</exception>
-        public List<ChessMove> GetLegalMoves(ChessSquare square)
-        {
-            if(square == null)
-            {
-                throw new ArgumentNullException(nameof(square));
-            }
-            if(board[square.x88Notation] == null)
-            {
-                throw new ArgumentException("There is no piece on the given square.");
-            }
-            var moves = GenerateMove(square.x88Notation);
-            if (square.x88Notation == kings[Turn])
-            {
-                moves.AddRange(GenerateCastling());
-            }
-
-            return moves;
-        }
-
-        public FENValidationResult ValidateFen(string fen)
-        {
-            return FENValidator.Validate(fen);
-        }
-    }
-
-
-
-    // =============================== CLASSES =================================
-
-    public class Move
-    {
-        public ChessColor color { get; set; }
-        public int from { get; set; }
-        public int to { get; set; }
-        public ChessMoveType flags { get; set; }
-
-        public ChessPieceKind piece { get; set; }
-        public ChessPieceKind promotion { get; set; }
-        public ChessPieceKind captured { get; set; }
-    }
-
-    internal class BoardState
-    {
-        public ChessMove move { get; set; }
-        public Dictionary<ChessColor, int> kings { get; set; }
-        public ChessColor turn { get; set; }
-        public Dictionary<ChessColor, ChessCastling> castling { get; set; }
-        public int ep_square { get; set; }
-        public int half_moves { get; set; }
-        public int move_number { get; set; }
-    }
-
-    public class UndoMoveResult
-    {
-        public ChessColor color;
-        public string from = "";
-        public string to = "";
-        public ChessPieceKind piece = ChessPieceKind.None;
+        #endregion Private Methods
     }
 }

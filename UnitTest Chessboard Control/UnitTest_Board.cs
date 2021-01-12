@@ -248,7 +248,33 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void GetLegalMoves_Should_ReturnsAllLegalMoves()
+        [DataRow(ChessPieceKind.None, ChessColor.White, "")]
+        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
+        [DataRow(ChessPieceKind.Knight, ChessColor.White, "N")]
+        [DataRow(ChessPieceKind.Bishop, ChessColor.White, "B")]
+        [DataRow(ChessPieceKind.Queen, ChessColor.White, "Q")]
+        [DataRow(ChessPieceKind.King, ChessColor.White, "K")]
+        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
+        [DataRow(ChessPieceKind.None, ChessColor.Black, "")]
+        [DataRow(ChessPieceKind.Knight, ChessColor.Black, "n")]
+        [DataRow(ChessPieceKind.Bishop, ChessColor.Black, "b")]
+        [DataRow(ChessPieceKind.Queen, ChessColor.Black, "q")]
+        [DataRow(ChessPieceKind.King, ChessColor.Black, "k")]
+        public void ChessPieceToFEN_Should_ReturnsCorrectFENPiece(ChessPieceKind pieceKind, ChessColor pieceColor, string expectedFEN)
+        {
+            //	Assert
+            Assert.AreEqual(expectedFEN, SUT.ChessPieceToFEN(new ChessPiece(pieceKind, pieceColor)));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void ChessPieceToFEN_Should_ThrowArgumentNullException_WhenPieceIsNull()
+        {
+            SUT.ChessPieceToFEN(null);
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnsAllLegalMovesForInitialPosition()
         {
             //	Arrange
             SUT board = new SUT();
@@ -259,6 +285,105 @@ namespace UnitTest_Chessboard_Control
 
             //	Assert
             Assert.AreEqual(20, legalMoves.Count);
+        }
+
+        [TestMethod]
+        [DataRow("4k3/8/8/8/4K3/8/8/8 w - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
+        [DataRow("8/K7/8/8/4k3/8/8/8 b - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
+        [DataRow("8/K3N3/8/8/4k3/8/8/4N3 b - - 0 1", "e4", "e5,d4,f4,e3")]
+        [DataRow("8/k3n3/8/8/4K3/8/8/4n3 w - - 0 1", "e4", "e5,d4,f4,e3")]
+        [DataRow("8/8/8/8/4Q3/8/8/8 w - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/8/8/4q3/8/8/8 b - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/2P3P1/8/P3q2P/8/2P3P1/8 b - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/2p3p1/8/p3Q2p/8/2p3p1/8 w - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/4P3/8/8/P3r2P/8/8/4P3 b - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
+        [DataRow("8/4p3/8/8/p3R2p/8/8/4p3 w - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
+        [DataRow("8/7p/2p5/8/4B3/8/6p1/1p6 w - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
+        [DataRow("8/7P/2P5/8/4b3/8/6P1/1P6 b - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
+        [DataRow("8/8/8/8/4n3/8/8/8 b - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
+        [DataRow("8/8/8/8/4N3/8/8/8 w - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
+        public void GetLegalMoves_Should_ReturnsAllLegalMoves(string fen, string from , string moves)
+        {
+            //	Arrange
+            SUT board = new SUT(fen);
+            List<ChessMove> legalMoves;
+            List<string> expectedMoves = new List<string>();
+
+            //	Act
+            foreach (string move in moves.Split(new char[] { ',' }))
+            {
+                expectedMoves.Add(move);
+            }
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(expectedMoves.Count, legalMoves.Count);
+            foreach (ChessMove legalMove in legalMoves)
+            {
+                if (from == legalMove.From.AlgebraicNotation)
+                {
+                    bool found = false;
+                    foreach (string expectedMove in expectedMoves)
+                    {
+                        if (expectedMove == legalMove.To.AlgebraicNotation) { found = true; break; }
+                    }
+                    Assert.IsTrue(found);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnsEmptyList()
+        {
+            //	Arrange
+            SUT board = new SUT("8/4p3/p3k3/P2R1R2/4K1p1/6P1/8/8 b - - 0 1");
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(0, legalMoves.Count);
+        }
+
+        [TestMethod]
+        public void LegalMoves_Should_ReturnsKingSideCastle()
+        {
+            //	Arrange            
+            SUT board = new SUT("rnbqk2r/pppp1ppp/5n2/4p3/8/b7/8/4K2R w Kkq - 0 1");
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(14, legalMoves.Count);
+            bool found = false;
+            foreach (ChessMove chessMove in legalMoves)
+            {
+                if(chessMove.MoveKind == ChessMoveType.KSide_Castle) { found = true; }
+            }
+            Assert.IsTrue(found);
+        }
+
+        [TestMethod]
+        public void LegalMoves_Should_ReturnsQueenSideCastle()
+        {
+            //	Arrange            
+            SUT board = new SUT("rnbqk2r/pppp1ppp/3b1n2/4p3/8/8/8/R3K3 w Qkq - 0 1");
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(15, legalMoves.Count);
+            bool found = false;
+            foreach (ChessMove chessMove in legalMoves)
+            {
+                if (chessMove.MoveKind == ChessMoveType.QSide_Castle) { found = true; }
+            }
+            Assert.IsTrue(found);
         }
 
         [TestMethod]
