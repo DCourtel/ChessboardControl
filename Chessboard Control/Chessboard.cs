@@ -2,10 +2,13 @@
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace ChessboardControl
 {
+    [Designer(typeof(ChessboardDesigner))]
     [DefaultEvent("OnPieceMoved")]
+    [ToolboxBitmap(@"C:\Users\AdminSRV\source\repos\Chessboard Control\Chessboard Control\Chessboard.bmp")]
     public partial class Chessboard : Control
     {
         //  Sizes
@@ -36,27 +39,30 @@ namespace ChessboardControl
         public Chessboard()
         {
             InitializeComponent();
+            SetStyle(ControlStyles.OptimizedDoubleBuffer |
+                    ControlStyles.UserPaint |
+                    ControlStyles.AllPaintingInWmPaint, true);
             Size = new Size(340, 340);
-            WhiteSquareColor = DEFAULT_WHITE_SQUARE_COLOR;
-            BlackSquareColor = DEFAULT_BLACK_SQUARE_COLOR;
+            LightSquaresColor = DEFAULT_WHITE_SQUARE_COLOR;
+            DarkSquaresColor = DEFAULT_BLACK_SQUARE_COLOR;
             CoordinateAreaBackColor = DEFAULT_COORDINATE_BACKGROUND_COLOR;
         }
 
         #region Properties
 
-        private Color _blackSquareColor;
+        private Color _darkSquaresColor;
         /// <summary>
-        /// Gets or sets the color used to draw black squares.
+        /// Gets or sets the color used to draw dark squares.
         /// </summary>
         [DefaultValue(typeof(Color), "#FF4682B4")]
-        public Color BlackSquareColor
+        public Color DarkSquaresColor
         {
-            get { return _blackSquareColor; }
+            get { return _darkSquaresColor; }
             set
             {
-                if (value != _blackSquareColor)
+                if (value != _darkSquaresColor)
                 {
-                    _blackSquareColor = value;
+                    _darkSquaresColor = value;
                     Invalidate();
                 }
             }
@@ -124,6 +130,29 @@ namespace ChessboardControl
         /// </summary>
         private Board ChessEngine { get; } = new Board();
 
+        private Color _lightSquaresColor;
+        /// <summary>
+        /// Gets or sets the color used to draw light squares.
+        /// </summary>
+        [DefaultValue(typeof(Color), "#FFF5F5F5")]
+        public Color LightSquaresColor
+        {
+            get { return _lightSquaresColor; }
+            set
+            {
+                if (value != _lightSquaresColor)
+                {
+                    _lightSquaresColor = value;
+                    Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether to show visual hints.
+        /// </summary>
+        public bool ShowVisualHints { get; set; } = false;
+
         /// <summary>
         /// Gets or sets the size of the control. Minimum value is 255x255.
         /// </summary>
@@ -160,24 +189,6 @@ namespace ChessboardControl
         private int SquareWidth
         {
             get { return Math.Max(MINIMUM_SQUARE_WIDTH, (int)(this.Size.Width / 8.5)); }
-        }
-
-        private Color _whiteSquareColor;
-        /// <summary>
-        /// Gets or sets the color used to draw white squares.
-        /// </summary>
-        [DefaultValue(typeof(Color), "#FFF5F5F5")]
-        public Color WhiteSquareColor
-        {
-            get { return _whiteSquareColor; }
-            set
-            {
-                if (value != _whiteSquareColor)
-                {
-                    _whiteSquareColor = value;
-                    Invalidate();
-                }
-            }
         }
 
         #endregion Properties
@@ -257,8 +268,8 @@ namespace ChessboardControl
         private void RedrawSquare(ChessSquare targetedSquare)
         {
             var g = this.CreateGraphics();
-            var blackSquareBrush = new Pen(BlackSquareColor).Brush;
-            var whiteSquareBrush = new Pen(WhiteSquareColor).Brush;
+            var blackSquareBrush = new Pen(DarkSquaresColor).Brush;
+            var whiteSquareBrush = new Pen(LightSquaresColor).Brush;
             var x = (int)targetedSquare.File;
             var y = (int)targetedSquare.Rank;
             var isWhiteSquare = (((int)targetedSquare.File + (int)targetedSquare.Rank) % 2) != 0;
@@ -310,17 +321,16 @@ namespace ChessboardControl
         /// </summary>
         public void SetupInitialPosition()
         {
-            ChessEngine.LoadFEN(Board.DEFAULT_FEN_POSITION);
+            ChessEngine.LoadFEN(Board.INITIAL_FEN_POSITION);
             Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs pe)
         {
-            this.SuspendLayout();
             var g = pe.Graphics;
             var coordinateAreaBrush = new Pen(CoordinateAreaBackColor).Brush;
-            var blackSquareBrush = new Pen(BlackSquareColor).Brush;
-            var whiteSquareBrush = new Pen(WhiteSquareColor).Brush;
+            var darkSquaresBrush = new Pen(DarkSquaresColor).Brush;
+            var lightSquaresBrush = new Pen(LightSquaresColor).Brush;
 
             //  Draw a filled rectangle for digits
             g.FillRectangle(coordinateAreaBrush, 0, 0, DigitAreaWidth, this.Height);
@@ -357,27 +367,29 @@ namespace ChessboardControl
             //  Draw Turn indicator
             var turnIndicatorBorder = new Rectangle(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
             var turnIndicatorSquare = new RectangleF(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
-            g.FillRectangle(ChessEngine.Turn == ChessColor.White ? whiteSquareBrush : blackSquareBrush, turnIndicatorSquare);
+            g.FillRectangle(ChessEngine.Turn == ChessColor.White ? lightSquaresBrush : darkSquaresBrush, turnIndicatorSquare);
             g.DrawRectangle(new Pen(Color.Black), turnIndicatorBorder);
 
             //  Draw cells
-            bool isWhiteSquare = true;
+            bool isLightSquare = true;
             for (int x = 0; x < 8; x++)
             {
                 for (int y = 0; y < 8; y++)
                 {
                     var square = new RectangleF(DigitAreaWidth + x * SquareWidth, y * SquareHeight, SquareWidth, SquareHeight);
-                    g.FillRectangle(isWhiteSquare ? whiteSquareBrush : blackSquareBrush, square);
-                    ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ? new ChessSquare((ChessFile)x, (ChessRank)7 - y) : new ChessSquare((ChessFile)7 - x, (ChessRank)y);
+                    g.FillRectangle(isLightSquare ? lightSquaresBrush : darkSquaresBrush, square);
+                    ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ?
+                        new ChessSquare((ChessFile)x, (ChessRank)7 - y) :
+                        new ChessSquare((ChessFile)7 - x, (ChessRank)y);
                     ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
                     if (currentPiece != null)
                     {
                         g.DrawImage(GetPieceImage(currentPiece), square);
                     }
 
-                    isWhiteSquare = !isWhiteSquare;
+                    isLightSquare = !isLightSquare;
                 }
-                isWhiteSquare = !isWhiteSquare;
+                isLightSquare = !isLightSquare;
             }
 
             //  Draw borders
@@ -385,7 +397,28 @@ namespace ChessboardControl
             g.DrawRectangle(new Pen(Color.Black), borders);
 
             g.Flush();
-            this.ResumeLayout();
+        }
+
+        private void DrawVisualHints()
+        {
+            if (ShowVisualHints && DragDropOperation.Origin != null)
+            {
+                var g = this.CreateGraphics();
+                List<ChessMove> legalMoves = ChessEngine.GetLegalMoves(DragDropOperation.Origin);
+                foreach (ChessMove chessMove in legalMoves)
+                {
+                    g.FillEllipse(new SolidBrush(Color.FromArgb(150, 92, 214, 92)),
+                        BoardDirection == BoardDirection.BlackOnTop ?
+                        GetHintRectangle((int)chessMove.To.File, 7 - (int)chessMove.To.Rank) :
+                        GetHintRectangle(7 - (int)chessMove.To.File, (int)chessMove.To.Rank));
+                }
+                g.Flush();
+            }
+        }
+
+        private RectangleF GetHintRectangle(int x, int y)
+        {
+            return new RectangleF(DigitAreaWidth + x * SquareWidth + SquareWidth / 4, y * SquareHeight + SquareHeight / 4, SquareWidth / 2f, SquareHeight / 2f);
         }
 
         #endregion Methods
@@ -426,6 +459,7 @@ namespace ChessboardControl
                     Cursor = new Cursor(resizedBitmap.GetHicon());
                     DragDropOperation = new DragOperation(selectedPiece.Kind, origin);
                     RedrawSquare(origin);
+                    DrawVisualHints();
                     OnSquareSelected?.Invoke(this, origin, selectedPiece.Kind);
                 }
             }
@@ -445,9 +479,23 @@ namespace ChessboardControl
                     var moveValidation = ChessEngine.GetMoveValidity(DragDropOperation.Origin, destinationSquare);
                     if (moveValidation.IsValid)
                     {
-                        ChessEngine.Move(moveValidation);
-                        Invalidate();
-                        OnPieceMoved?.Invoke(this, DragDropOperation.Origin, destinationSquare, DragDropOperation.DraggedPiece, moveValidation.CapturedPiece);
+                        var promotionCancelled = false;
+                        if ((moveValidation.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion)
+                        {
+                            var pieceChooser = new FrmPromotion(ChessEngine.Turn);
+                            promotionCancelled = (pieceChooser.ShowDialog() != DialogResult.OK);
+                            moveValidation.PromotedTo = pieceChooser.ChoosePiece;
+                        }
+                        if (!promotionCancelled)
+                        {
+                            ChessEngine.Move(moveValidation);
+                            Invalidate();
+                            OnPieceMoved?.Invoke(this, DragDropOperation.Origin, destinationSquare, DragDropOperation.DraggedPiece, moveValidation.CapturedPiece);
+                        }
+                        else
+                        {
+                            Invalidate();
+                        }
                     }
                     else
                     {

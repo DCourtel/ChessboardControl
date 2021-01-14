@@ -18,7 +18,7 @@ namespace UnitTest_Chessboard_Control
             string fen = board.GetFEN();
 
             //	Assert
-            Assert.AreEqual(SUT.DEFAULT_FEN_POSITION, fen);
+            Assert.AreEqual(SUT.INITIAL_FEN_POSITION, fen);
         }
 
         [TestMethod]
@@ -94,14 +94,14 @@ namespace UnitTest_Chessboard_Control
             board.Reset();
 
             //	Assert
-            Assert.AreEqual(SUT.DEFAULT_FEN_POSITION, board.GetFEN());
+            Assert.AreEqual(SUT.INITIAL_FEN_POSITION, board.GetFEN());
             Assert.AreEqual(ChessColor.White, board.Turn);
             Assert.AreEqual(ChessCastling.KingSide | ChessCastling.QueenSide, board.GetCastlingRights(ChessColor.White));
             Assert.AreEqual(ChessCastling.KingSide | ChessCastling.QueenSide, board.GetCastlingRights(ChessColor.Black));
         }
 
         [TestMethod]
-        public void GetPieceAt_Should_ReturnsThePiece()
+        public void GetPieceAt_Should_ReturnThePiece()
         {
             //	Arrange
             SUT board = new SUT();
@@ -224,7 +224,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void Ascii_Should_ReturnsCorrectFormat()
+        public void Ascii_Should_ReturnCorrectFormat()
         {
             //	Arrange
             SUT board = new SUT();
@@ -260,7 +260,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow(ChessPieceKind.Bishop, ChessColor.Black, "b")]
         [DataRow(ChessPieceKind.Queen, ChessColor.Black, "q")]
         [DataRow(ChessPieceKind.King, ChessColor.Black, "k")]
-        public void ChessPieceToFEN_Should_ReturnsCorrectFENPiece(ChessPieceKind pieceKind, ChessColor pieceColor, string expectedFEN)
+        public void ChessPieceToFEN_Should_ReturnCorrectFENPiece(ChessPieceKind pieceKind, ChessColor pieceColor, string expectedFEN)
         {
             //	Assert
             Assert.AreEqual(expectedFEN, SUT.ChessPieceToFEN(new ChessPiece(pieceKind, pieceColor)));
@@ -273,8 +273,36 @@ namespace UnitTest_Chessboard_Control
             SUT.ChessPieceToFEN(null);
         }
 
+
         [TestMethod]
-        public void GetLegalMoves_Should_ReturnsAllLegalMovesForInitialPosition()
+        [DataRow('p', ChessPieceKind.Pawn)]
+        [DataRow('r', ChessPieceKind.Rook)]
+        [DataRow('n', ChessPieceKind.Knight)]
+        [DataRow('b', ChessPieceKind.Bishop)]
+        [DataRow('q', ChessPieceKind.Queen)]
+        [DataRow('k', ChessPieceKind.King)]
+        [DataRow('P', ChessPieceKind.Pawn)]
+        [DataRow('R', ChessPieceKind.Rook)]
+        [DataRow('N', ChessPieceKind.Knight)]
+        [DataRow('B', ChessPieceKind.Bishop)]
+        [DataRow('Q', ChessPieceKind.Queen)]
+        [DataRow('K', ChessPieceKind.King)]
+        public void FenToChessPiece_Should_Return_ChessPieceKind(char piece, ChessPieceKind expectedResult)
+        {
+            //	Assert
+            Assert.AreEqual(expectedResult, SUT.FenToChessPiece(piece));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentOutOfRangeException))]
+        public void FenToChessPiece_Should_ThrowArgumentOutOfRangeException()
+        {
+            //	Act
+            SUT.FenToChessPiece('v');
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnAllLegalMovesForInitialPosition()
         {
             //	Arrange
             SUT board = new SUT();
@@ -302,7 +330,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("8/7P/2P5/8/4b3/8/6P1/1P6 b - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
         [DataRow("8/8/8/8/4n3/8/8/8 b - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
         [DataRow("8/8/8/8/4N3/8/8/8 w - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
-        public void GetLegalMoves_Should_ReturnsAllLegalMoves(string fen, string from , string moves)
+        public void GetLegalMoves_Should_ReturnAllLegalMoves(string fen, string from , string moves)
         {
             //	Arrange
             SUT board = new SUT(fen);
@@ -333,7 +361,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void GetLegalMoves_Should_ReturnsEmptyList()
+        public void GetLegalMoves_Should_ReturnEmptyList()
         {
             //	Arrange
             SUT board = new SUT("8/4p3/p3k3/P2R1R2/4K1p1/6P1/8/8 b - - 0 1");
@@ -347,7 +375,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void LegalMoves_Should_ReturnsKingSideCastle()
+        public void LegalMoves_Should_ReturnKingSideCastle()
         {
             //	Arrange            
             SUT board = new SUT("rnbqk2r/pppp1ppp/5n2/4p3/8/b7/8/4K2R w Kkq - 0 1");
@@ -367,7 +395,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void LegalMoves_Should_ReturnsQueenSideCastle()
+        public void LegalMoves_Should_ReturnQueenSideCastle()
         {
             //	Arrange            
             SUT board = new SUT("rnbqk2r/pppp1ppp/3b1n2/4p3/8/8/8/R3K3 w Qkq - 0 1");
@@ -506,7 +534,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f4", "f3", ChessMoveType.Normal)]
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g4", "g3", ChessMoveType.Normal)]
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h4", "h3", ChessMoveType.Normal)]
-        public void IsMoveLegal_Should_Returns_True_When_PawnMoveIsLegal(
+        public void IsMoveLegal_Should_Return_True_When_PawnMoveIsLegal(
             string fen,
             string from,
             string to,
@@ -638,7 +666,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppp1p/8/8/5Pp1/8/PPPPP1PP/RNBQKBNR b KQkq f3 0 1", "g4", "f3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
         [DataRow("rnbqkbnr/pppppp1p/8/8/6pP/8/PPPPPPP1/RNBQKBNR b KQkq h3 0 1", "g4", "h3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
         [DataRow("rnbqkbnr/ppppppp1/8/8/6Pp/8/PPPPPP1P/RNBQKBNR b KQkq g3 0 1", "h4", "g3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        public void IsMoveLegal_Should_Returns_True_When_PawnCaptureIsLegal(
+        public void IsMoveLegal_Should_Return_True_When_PawnCaptureIsLegal(
             string fen,
             string from,
             string to,
@@ -783,7 +811,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "f4", ChessMoveRejectedReason.NotMovingLikeThis)]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "e5", ChessMoveRejectedReason.NotMovingLikeThis)]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        public void IsMoveLegal_Should_Returns_False_When_PawnMoveIsIllegal(
+        public void IsMoveLegal_Should_Return_False_When_PawnMoveIsIllegal(
             string fen,
             string from,
             string to,

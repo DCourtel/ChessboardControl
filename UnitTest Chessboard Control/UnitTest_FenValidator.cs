@@ -26,7 +26,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Q - 0 1")]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq g6 0 1")]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq b3 0 1")]
-        public void IsValid_Should_Retuns_True(string fen)
+        public void IsValid_Should_Retun_True(string fen)
         {
             //	Assert
             Assert.IsTrue(SUT.Validate(fen).IsValid);

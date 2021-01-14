@@ -38,6 +38,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
@@ -67,12 +68,20 @@
     <Compile Include="Chessboard.Designer.cs">
       <DependentUpon>Chessboard.cs</DependentUpon>
     </Compile>
+    <Compile Include="ChessboardDesigner.cs" />
+    <Compile Include="ChessboardDesignerActionList.cs" />
     <Compile Include="Enumerations.cs" />
     <Compile Include="Exceptions\IllegalMoveException.cs" />
     <Compile Include="Exceptions\InvalidCoordinatesException.cs" />
     <Compile Include="FenValidator\FEN.cs" />
     <Compile Include="FenValidator\FENValidationResult.cs" />
     <Compile Include="FenValidator\FENValidator.cs" />
+    <Compile Include="FrmPromotion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FrmPromotion.Designer.cs">
+      <DependentUpon>FrmPromotion.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -83,6 +92,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Chessboard.resx">
       <DependentUpon>Chessboard.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FrmPromotion.resx">
+      <DependentUpon>FrmPromotion.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -125,6 +137,11 @@
   <ItemGroup>
     <None Include="Resources\WhiteRook.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Chessboard.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Chessboard.bmp" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

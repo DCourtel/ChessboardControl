@@ -88,5 +88,10 @@ namespace ChessboardTester
                 }
             }
         }
+
+        private void ChkBxShowVisualHints_CheckedChanged(object sender, EventArgs e)
+        {
+            chessboard1.ShowVisualHints = ChkBxShowVisualHints.Checked;
+        }
     }
 }

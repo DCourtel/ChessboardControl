@@ -43,7 +43,7 @@ namespace ChessboardControl
     {
         private const int EMPTY_SQUARE = -1;
 
-        public static readonly string DEFAULT_FEN_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        public static readonly string INITIAL_FEN_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
         private enum PawnMove
         {
@@ -159,11 +159,11 @@ namespace ChessboardControl
         #region Constructors
 
         /// <summary>
-        /// Creates an instance of the class initialized with the default position.
+        /// Creates an instance of the class initialized with the initial position.
         /// </summary>
         public Board()
         {
-            LoadFEN(DEFAULT_FEN_POSITION);
+            LoadFEN(INITIAL_FEN_POSITION);
         }
 
         /// <summary>
@@ -322,20 +322,11 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Returns a ChessPiece corresponding to its FEN abbreviation
-        /// </summary>
-        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
-        /// <returns></returns>
-        public static ChessPieceKind FenToChessPiece(string fenPiece)
-        {
-            return FenToChessPiece(fenPiece[0]);
-        }
-
-        /// <summary>
         /// Returns the kind of a chess piece corresponding to its FEN abbreviation.
         /// </summary>
         /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
         /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the char doesn’t match any FEN formatted chess piece kind.</exception>
         public static ChessPieceKind FenToChessPiece(char fenPiece)
         {
             switch (char.ToLower(fenPiece))
@@ -958,7 +949,7 @@ namespace ChessboardControl
         /// </summary>
         public void Reset()
         {
-            LoadFEN(DEFAULT_FEN_POSITION);
+            LoadFEN(INITIAL_FEN_POSITION);
         }
 
         /// <summary>

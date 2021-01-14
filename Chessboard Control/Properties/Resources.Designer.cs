@@ -123,6 +123,16 @@ namespace ChessboardControl.Properties {
         /// <summary>
         ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap Chessboard {
+            get {
+                object obj = ResourceManager.GetObject("Chessboard", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une ressource localisée de type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap WhiteBishop {
             get {
                 object obj = ResourceManager.GetObject("WhiteBishop", resourceCulture);

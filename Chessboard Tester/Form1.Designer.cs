@@ -44,6 +44,7 @@ namespace ChessboardTester
             this.BtnMovePiece = new System.Windows.Forms.Button();
             this.ChkBxFlipBoard = new System.Windows.Forms.CheckBox();
             this.BtnSaveToFile = new System.Windows.Forms.Button();
+            this.ChkBxShowVisualHints = new System.Windows.Forms.CheckBox();
             this.chessboard1 = new ChessboardControl.Chessboard();
             this.SuspendLayout();
             // 
@@ -239,6 +240,18 @@ namespace ChessboardTester
             this.BtnSaveToFile.UseVisualStyleBackColor = true;
             this.BtnSaveToFile.Click += new System.EventHandler(this.BtnSaveToFile_Click);
             // 
+            // ChkBxShowVisualHints
+            // 
+            this.ChkBxShowVisualHints.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.ChkBxShowVisualHints.AutoSize = true;
+            this.ChkBxShowVisualHints.Location = new System.Drawing.Point(358, 312);
+            this.ChkBxShowVisualHints.Name = "ChkBxShowVisualHints";
+            this.ChkBxShowVisualHints.Size = new System.Drawing.Size(78, 17);
+            this.ChkBxShowVisualHints.TabIndex = 17;
+            this.ChkBxShowVisualHints.Text = "Show hints";
+            this.ChkBxShowVisualHints.UseVisualStyleBackColor = true;
+            this.ChkBxShowVisualHints.CheckedChanged += new System.EventHandler(this.ChkBxShowVisualHints_CheckedChanged);
+            // 
             // chessboard1
             // 
             this.chessboard1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -246,9 +259,10 @@ namespace ChessboardTester
             | System.Windows.Forms.AnchorStyles.Right)));
             this.chessboard1.Location = new System.Drawing.Point(12, 12);
             this.chessboard1.Name = "chessboard1";
+            this.chessboard1.ShowVisualHints = false;
             this.chessboard1.Size = new System.Drawing.Size(340, 340);
-            this.chessboard1.TabIndex = 16;
-            this.chessboard1.Text = "chessboard2";
+            this.chessboard1.TabIndex = 18;
+            this.chessboard1.Text = "chessboard1";
             this.chessboard1.OnSquareSelected += new ChessboardControl.Chessboard.SelectedSquareEventHandler(this.chessboard1_OnSquareSelected);
             this.chessboard1.OnPieceMoved += new ChessboardControl.Chessboard.PieceMovedEventHandler(this.chessboard1_OnPieceMoved);
             this.chessboard1.OnPieceRemoved += new ChessboardControl.Chessboard.PieceRemovedEventHandler(this.chessboard1_OnPieceRemoved);
@@ -260,6 +274,7 @@ namespace ChessboardTester
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(442, 462);
             this.Controls.Add(this.chessboard1);
+            this.Controls.Add(this.ChkBxShowVisualHints);
             this.Controls.Add(this.BtnSaveToFile);
             this.Controls.Add(this.ChkBxFlipBoard);
             this.Controls.Add(this.BtnMovePiece);
@@ -301,6 +316,7 @@ namespace ChessboardTester
         private System.Windows.Forms.Button BtnMovePiece;
         private System.Windows.Forms.CheckBox ChkBxFlipBoard;
         private System.Windows.Forms.Button BtnSaveToFile;
+        private System.Windows.Forms.CheckBox ChkBxShowVisualHints;
         private ChessboardControl.Chessboard chessboard1;
     }
 }
