@@ -1,7 +1,7 @@
 # ChessboardControl
 A .Net control to display a chessboard.
 
-![Initial_Position](/Screenshots/ChessboardControl.png)
+![Initial_Position](/Screenshots/Sicilian_Defense.gif)
 
 The control displays a set of chess pieces and allows to move these pieces in respect of chess rules. It can show available moves once a piece has been selected. Take a look at the «Chessboard Tester» project to have an idea of how to use the control.
 
