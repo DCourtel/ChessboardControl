@@ -35,8 +35,7 @@ namespace ChessboardControl
             internal ChessPieceKind DraggedPiece { get; set; }
             internal ChessSquare Origin { get; set; }
         }
-        private int _imageCount = 1;
-        private string _filePath = @"C:\Temp\Chessboard\image";
+
         public Chessboard()
         {
             InitializeComponent();
@@ -306,7 +305,6 @@ namespace ChessboardControl
             
             this.DrawToBitmap(bmp, new Rectangle(Point.Empty, bmp.Size));
             bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
-            _imageCount++;
         }
 
         /// <summary>
@@ -395,7 +393,6 @@ namespace ChessboardControl
                 isLightSquare = !isLightSquare;
             }
 
-            DrawVisualHints(g);
             //  Draw borders
             var borders = new Rectangle(0, 0, Width - 1, Height - 1);
             g.DrawRectangle(new Pen(Color.Black), borders);
@@ -407,15 +404,8 @@ namespace ChessboardControl
         {
             if (ShowVisualHints && DragDropOperation.Origin != null)
             {
-                DrawVisualHints(this.CreateGraphics());
-            }
-        }
-
-        private void DrawVisualHints(Graphics g)
-        {
-            if (ShowVisualHints && DragDropOperation.Origin != null)
-            {
                 List<ChessMove> legalMoves = ChessEngine.GetLegalMoves(DragDropOperation.Origin);
+                var g = this.CreateGraphics();
                 foreach (ChessMove chessMove in legalMoves)
                 {
                     g.FillEllipse(new SolidBrush(Color.FromArgb(150, 92, 214, 92)),
@@ -472,7 +462,6 @@ namespace ChessboardControl
                     RedrawSquare(origin);
                     DrawVisualHints();
                     OnSquareSelected?.Invoke(this, origin, selectedPiece.Kind);
-                    SaveAsImage($"{_filePath}{_imageCount}.png");
                 }
             }
         }
@@ -523,8 +512,6 @@ namespace ChessboardControl
             }
             DragDropOperation = new DragOperation(ChessPieceKind.None, null);
             OnSquareUnselected?.Invoke(this, new EventArgs());
-
-                        SaveAsImage($"{_filePath}{_imageCount}.png");
         }
 
         private void Chessboard_Resize(object sender, EventArgs e)
