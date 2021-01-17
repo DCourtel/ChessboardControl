@@ -46,6 +46,7 @@ namespace ChessboardTester
             this.BtnSaveToFile = new System.Windows.Forms.Button();
             this.ChkBxShowVisualHints = new System.Windows.Forms.CheckBox();
             this.chessboard1 = new ChessboardControl.Chessboard();
+            this.LblGameStatus = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // BtnClear
@@ -264,15 +265,29 @@ namespace ChessboardTester
             this.chessboard1.TabIndex = 18;
             this.chessboard1.Text = "chessboard1";
             this.chessboard1.OnSquareSelected += new ChessboardControl.Chessboard.SelectedSquareEventHandler(this.chessboard1_OnSquareSelected);
+            this.chessboard1.OnSquareUnselected += new System.EventHandler(this.chessboard1_OnSquareUnselected);
             this.chessboard1.OnPieceMoved += new ChessboardControl.Chessboard.PieceMovedEventHandler(this.chessboard1_OnPieceMoved);
             this.chessboard1.OnPieceRemoved += new ChessboardControl.Chessboard.PieceRemovedEventHandler(this.chessboard1_OnPieceRemoved);
-            this.chessboard1.OnSquareUnselected += new System.EventHandler(this.chessboard1_OnSquareUnselected);
+            this.chessboard1.OnCheckmate += new System.EventHandler(this.chessboard1_OnCheckmate);
+            this.chessboard1.OnCheck += new System.EventHandler(this.chessboard1_OnCheck);
+            this.chessboard1.OnDraw += new System.EventHandler(this.chessboard1_OnDraw);
+            // 
+            // LblGameStatus
+            // 
+            this.LblGameStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.LblGameStatus.AutoSize = true;
+            this.LblGameStatus.Location = new System.Drawing.Point(12, 440);
+            this.LblGameStatus.Name = "LblGameStatus";
+            this.LblGameStatus.Size = new System.Drawing.Size(72, 13);
+            this.LblGameStatus.TabIndex = 19;
+            this.LblGameStatus.Text = "Game status: ";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(442, 462);
+            this.Controls.Add(this.LblGameStatus);
             this.Controls.Add(this.chessboard1);
             this.Controls.Add(this.ChkBxShowVisualHints);
             this.Controls.Add(this.BtnSaveToFile);
@@ -318,6 +333,7 @@ namespace ChessboardTester
         private System.Windows.Forms.Button BtnSaveToFile;
         private System.Windows.Forms.CheckBox ChkBxShowVisualHints;
         private ChessboardControl.Chessboard chessboard1;
+        private System.Windows.Forms.Label LblGameStatus;
     }
 }
 

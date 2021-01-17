@@ -474,7 +474,7 @@ namespace UnitTest_Chessboard_Control
                 Assert.IsTrue(moveHistory[i].To.Equals(playedMoves[i].To));
                 Assert.AreEqual(moveHistory[i].IsValid, playedMoves[i].IsValid);
                 Assert.AreEqual(moveHistory[i].MoveKind, playedMoves[i].MoveKind);
-                Assert.AreEqual(moveHistory[i].MovingPiece, playedMoves[i].MovingPiece);
+                Assert.AreEqual(moveHistory[i].MovingPiece.Kind, playedMoves[i].MovingPiece.Kind);
                 Assert.AreEqual(moveHistory[i].PromotedTo, playedMoves[i].PromotedTo);
                 Assert.AreEqual(moveHistory[i].IllegalReason, playedMoves[i].IllegalReason);
             }
@@ -647,7 +647,7 @@ namespace UnitTest_Chessboard_Control
 
             //	Assert
             Assert.IsTrue(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece);
+            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
             Assert.AreEqual(moveType, actualResult.MoveKind);
         }
 
@@ -780,7 +780,7 @@ namespace UnitTest_Chessboard_Control
 
             //	Assert
             Assert.IsTrue(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece);
+            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
             Assert.AreEqual(capturedPiece, actualResult.CapturedPiece);
             Assert.AreEqual(moveType, actualResult.MoveKind);
         }
@@ -924,7 +924,7 @@ namespace UnitTest_Chessboard_Control
 
             //	Assert
             Assert.IsFalse(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece);
+            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
             Assert.AreEqual(rejectedReason, actualResult.IllegalReason);
         }
     }

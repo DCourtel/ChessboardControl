@@ -38,12 +38,30 @@
         /// <summary>
         /// Gets or sets the type of the piece being moved.
         /// </summary>
-        public ChessPieceKind MovingPiece { get; internal set; } = ChessPieceKind.None;
+        public ChessPiece MovingPiece { get; internal set; }
 
+        private ChessPieceKind _promotedTo = ChessPieceKind.None;
         /// <summary>
         /// Gets or sets the type of the piece created during a pawn promotion.
         /// </summary>
-        public ChessPieceKind PromotedTo { get; internal set; } = ChessPieceKind.None;
+        public ChessPieceKind PromotedTo {
+            get { return _promotedTo; }
+            set
+            {
+                switch (value)
+                {
+                    case ChessPieceKind.None:
+                    case ChessPieceKind.Knight:
+                    case ChessPieceKind.Bishop:
+                    case ChessPieceKind.Rook:
+                    case ChessPieceKind.Queen:
+                        _promotedTo = value;
+                        break;
+                    default:
+                        throw new System.ArgumentOutOfRangeException("You cannot promote a Pawn to a Pawn or a King.");
+                }
+            }
+        } 
 
         /// <summary>
         /// Gets or sets the square where the piece move to.
@@ -60,6 +78,7 @@
 
             clone.From = this.From;
             clone.To = this.To;
+            clone.MovingPiece = this.MovingPiece;
 
             return clone;            
         }
@@ -70,7 +89,7 @@
 
         public override string ToString()
         {
-            return $"{MovingPiece} {From}{(CapturedPiece != ChessPieceKind.None ? "x" : " ")}{To} ({(IsValid ? "Legal" : "Illegal")}){(IsValid ? "" : $"({IllegalReason})")}";
+            return $"{MovingPiece.Kind} {From}{(CapturedPiece != ChessPieceKind.None ? "x" : " ")}{To} ({(IsValid ? "Legal" : "Illegal")}){(IsValid ? "" : $"({IllegalReason})")}";
         }
 
         #endregion Methods

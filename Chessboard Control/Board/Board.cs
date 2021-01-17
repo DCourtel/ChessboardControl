@@ -191,7 +191,7 @@ namespace ChessboardControl
         /// </summary>
         public bool GameOver
         {
-            get { return FiftyMoveRule || IsCheckmate || IsStalemate || IsDrawByInsufficientMaterial || InThreefoldRepetition(); }
+            get { return FiftyMoveRule || IsCheckmate || IsStalemate || IsDrawByInsufficientMaterial || IsDrawByThreefoldRepetition; }
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace ChessboardControl
         /// <returns></returns>
         public bool IsDraw
         {
-            get { return (FiftyMoveRule || IsStalemate || IsDrawByInsufficientMaterial || InThreefoldRepetition()); }
+            get { return FiftyMoveRule || IsStalemate || IsDrawByInsufficientMaterial || IsDrawByThreefoldRepetition; }
         }
 
         /// <summary>
@@ -284,6 +284,50 @@ namespace ChessboardControl
                 }
 
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns whether the same position has repeated three time.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDrawByThreefoldRepetition
+        {
+            get
+            {
+                //  ToDo: Write unit-tests
+                bool repetition = false;
+                Stack<ChessMove> moves = new Stack<ChessMove>();
+                Dictionary<string, int> positions = new Dictionary<string, int>();
+
+                while (true)
+                {
+                    ChessMove move = UndoMove();
+                    if (move == null) break;
+                    moves.Push(move);
+                }
+
+                while (true)
+                {
+                    //  Remove the last two fields in the FEN string, they're not needed when checking for draw by rep
+                    FEN fenObj = new FEN(GetFEN());
+                    string fen = $"{fenObj.PiecesPosition} {fenObj.Turn} {fenObj.CastlingForWhite}{fenObj.CastlingForBlack} {fenObj.EnPassant}";
+
+                    //  Has the position occurred three or more times?
+                    positions[fen] = positions.ContainsKey(fen) ? positions[fen] + 1 : 1;
+                    if (positions[fen] >= 3)
+                    {
+                        repetition = true;
+                    }
+
+                    if (moves.Count < 1)
+                    {
+                        break;
+                    }
+                    MovePiece(moves.Pop());
+                }
+
+                return repetition;
             }
         }
 
@@ -473,7 +517,7 @@ namespace ChessboardControl
         public ChessMove GetMoveValidity(ChessSquare from, ChessSquare to)
         {
             //  ToDo: Write unit-tests for other pieces.
-            if(from == null) { throw new ArgumentNullException(nameof(from)); }
+            if (from == null) { throw new ArgumentNullException(nameof(from)); }
             if (to == null) { throw new ArgumentNullException(nameof(to)); }
             var validationResult = new ChessMove(from, to);
             var movingPiece = board[from.x88Notation];
@@ -486,7 +530,7 @@ namespace ChessboardControl
                 return validationResult;
             }
 
-            validationResult.MovingPiece = board[from.x88Notation].Kind;
+            validationResult.MovingPiece = board[from.x88Notation];
 
             //  Check the piece being moving has the right color
             if (movingPiece.Color != Turn)
@@ -729,47 +773,6 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Returns whether the same position has repeated three time.
-        /// </summary>
-        /// <returns></returns>
-        public bool InThreefoldRepetition()
-        {
-            //  ToDo: Write unit-tests
-            bool repetition = false;
-            Stack<ChessMove> moves = new Stack<ChessMove>();
-            Dictionary<string, int> positions = new Dictionary<string, int>();
-
-            while (true)
-            {
-                ChessMove move = UndoMove();
-                if (move == null) break;
-                moves.Push(move);
-            }
-
-            while (true)
-            {
-                //  Remove the last two fields in the FEN string, they're not needed when checking for draw by rep
-                FEN fenObj = new FEN( GetFEN());
-                string fen = $"{fenObj.PiecesPosition} {fenObj.Turn} {fenObj.CastlingForWhite}{fenObj.CastlingForBlack} {fenObj.EnPassant}";
-
-                //  Has the position occurred three or more times?
-                positions[fen] = positions.ContainsKey(fen) ? positions[fen] + 1 : 1;
-                if (positions[fen] >= 3)
-                {
-                    repetition = true;
-                }
-
-                if (moves.Count < 1)
-                {
-                    break;
-                }
-                MovePiece(moves.Pop());
-            }
-
-            return repetition;
-        }
-
-        /// <summary>
         /// Resets the board’s state and setup pieces as given in the FEN.
         /// </summary>
         /// <param name="fen">A string describing the position of pieces in the Forsyth–Edwards Notation (FEN).</param>
@@ -778,7 +781,7 @@ namespace ChessboardControl
         {
             if (!FENValidator.Validate(fen).IsValid)
             {
-                throw new ArgumentException();
+                throw new ArgumentException("The given FEN string is invalid.");
             }
             var fenObj = new FEN(fen);
             int square = 0;
@@ -867,7 +870,7 @@ namespace ChessboardControl
             int sq = square.x88Notation;
 
             //  Don't let the user place more than one king
-            if (piece.Kind == ChessPieceKind.King            && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
+            if (piece.Kind == ChessPieceKind.King && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
             {
                 throw new ArgumentException("You cannot put two Kings of the same color.");
             }
@@ -899,9 +902,40 @@ namespace ChessboardControl
 
             ChessPiece piece = GetPieceAt(square);
             board[square.x88Notation] = null;
-            if (piece != null && piece.Kind == ChessPieceKind.King)
+            if (piece != null)
             {
-                kings[piece.Color] = EMPTY_SQUARE;
+                if (piece.Kind == ChessPieceKind.King)
+                {
+                    kings[piece.Color] = EMPTY_SQUARE;
+                }
+                else
+                    if (piece.Kind == ChessPieceKind.Rook)  //  Update castling rights
+                {
+                    if (piece.Color == ChessColor.White)
+                    {
+                        if (square.AlgebraicNotation == "a1")
+                        {
+                            castling[ChessColor.White] = castling[ChessColor.White] & ChessCastling.KingSide;
+
+                        }
+                        if (square.AlgebraicNotation == "h1")
+                        {
+                            castling[ChessColor.White] = castling[ChessColor.White] & ChessCastling.QueenSide;
+                        }
+                    }
+                    if (piece.Color == ChessColor.Black)
+                    {
+                        if (square.AlgebraicNotation == "a8")
+                        {
+                            castling[ChessColor.Black] = castling[ChessColor.Black] & ChessCastling.KingSide;
+
+                        }
+                        if (square.AlgebraicNotation == "h8")
+                        {
+                            castling[ChessColor.Black] = castling[ChessColor.Black] & ChessCastling.QueenSide;
+                        }
+                    }
+                }
             }
 
             return piece;
@@ -932,7 +966,7 @@ namespace ChessboardControl
             ChessColor them = SwapColor(Turn);
 
             board[move.From.x88Notation] = board[move.To.x88Notation];
-            board[move.From.x88Notation].Kind = move.MovingPiece; // to undo any promotions
+            board[move.From.x88Notation].Kind = move.MovingPiece.Kind; // to undo any promotions
             board[move.To.x88Notation] = null;
 
             if ((move.MoveKind & ChessMoveType.Capture) != 0)
@@ -1176,6 +1210,7 @@ namespace ChessboardControl
 
         private void MovePiece(ChessMove move)
         {
+            if ((move.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion && move.PromotedTo == ChessPieceKind.None) { move.PromotedTo = ChessPieceKind.Queen; }
             ChessColor us = Turn;
             ChessColor them = SwapColor(us);
             PushToMoveHistory(move);
@@ -1270,7 +1305,7 @@ namespace ChessboardControl
             }
 
             /* reset the 50 move counter if a pawn is moved or a piece is captured */
-            if (move.MovingPiece == ChessPieceKind.Pawn)
+            if (move.MovingPiece.Kind == ChessPieceKind.Pawn)
             {
                 half_moves = 0;
             }

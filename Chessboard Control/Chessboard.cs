@@ -26,13 +26,13 @@ namespace ChessboardControl
 
         private struct DragOperation
         {
-            internal DragOperation(ChessPieceKind selectedPiece, ChessSquare source)
+            internal DragOperation(ChessPiece selectedPiece, ChessSquare source)
             {
                 DraggedPiece = selectedPiece;
                 Origin = source;
             }
 
-            internal ChessPieceKind DraggedPiece { get; set; }
+            internal ChessPiece DraggedPiece { get; set; }
             internal ChessSquare Origin { get; set; }
         }
 
@@ -118,6 +118,50 @@ namespace ChessboardControl
         private DragOperation DragDropOperation { get; set; }
 
         /// <summary>
+        /// Gets whether the King is attacked.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsCheck { get { return ChessEngine.IsCheck; } }
+
+        /// <summary>
+        /// Gets whether the King is checkmate.
+        /// </summary>
+        public bool IsCheckmate { get { return ChessEngine.IsCheckmate; } }
+
+        /// <summary>
+        /// Gets whether the game is in draw.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDraw { get { return ChessEngine.IsDraw; } }
+
+        /// <summary>
+        /// Gets whether the game is draw by the fifty moves rule.
+        /// </summary>
+        public bool IsDrawByFiftyMoveRule { get { return ChessEngine.FiftyMoveRule; } }
+
+        /// <summary>
+        /// Gets whether there is not enough material to win.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDrawByInsufficientMaterial { get { return ChessEngine.IsDrawByInsufficientMaterial; } }
+
+        /// <summary>
+        /// Returns whether the same position has repeated three time.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDrawByThreefoldRepetition { get { return ChessEngine.IsDrawByThreefoldRepetition; } }
+
+        /// <summary>
+        /// Gets whether the game is over.
+        /// </summary>
+        public bool IsGameOver { get { return ChessEngine.GameOver; } }
+
+        /// <summary>
+        /// Gets whether the King is stalemate.
+        /// </summary>
+        public bool IsStalemate { get { return ChessEngine.IsStalemate; } }
+
+        /// <summary>
         /// Gets the height of the area where letters of the coordinates are drawn.
         /// </summary>
         private int LetterAreaHeight
@@ -191,9 +235,27 @@ namespace ChessboardControl
             get { return Math.Max(MINIMUM_SQUARE_WIDTH, (int)(this.Size.Width / 8.5)); }
         }
 
+        /// <summary>
+        /// Gets whose turn it is.
+        /// </summary>
+        public ChessColor Turn { get { return ChessEngine.Turn; } }
+
         #endregion Properties
 
-        #region Methods
+        #region Public Methods
+
+        /// <summary>
+        /// Checks whether a move is valid and give the type of move (normal, capture, promotion).
+        /// In case the move is a promotion, set the <see cref="ChessMove.PromotedTo"/> property accordingly before to pass the return object to the <see cref="MovePiece(ChessMove)"/> method.
+        /// </summary>
+        /// <param name="from">Square the piece move from.</param>
+        /// <param name="to">Square the piece move to.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/> or <paramref name="to"/> are null.</exception>
+        public ChessMove CheckMoveValidity(ChessSquare from, ChessSquare to)
+        {
+            return ChessEngine.GetMoveValidity(from, to);
+        }
 
         /// <summary>
         /// Removes all pieces from the board.
@@ -205,11 +267,69 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Flip the board. If Blacks were on top, they will be on bottom and vice versa.
+        /// Flips the board. If Blacks were on top, they will be on bottom and vice versa.
         /// </summary>
         public void FlipBoard()
         {
             BoardDirection = (BoardDirection == BoardDirection.BlackOnTop ? BoardDirection.WhiteOnTop : BoardDirection.BlackOnTop);
+        }
+
+        /// <summary>
+        /// Returns an ASCII representation of the current board.
+        /// </summary>
+        /// <returns></returns>
+        public string GetASCII()
+        {
+            return ChessEngine.Ascii();
+        }
+
+        /// <summary>
+        /// Gets the castling possibilities for the given side.
+        /// </summary>
+        /// <param name="side"></param>
+        /// <returns></returns>
+        public ChessCastling GetCastlingPossiblitities(ChessColor side)
+        {
+            return ChessEngine.GetCastlingRights(side);
+        }
+
+        /// <summary>
+        /// Gets a string describing the position in the Forsyth–Edwards Notation (FEN).
+        /// </summary>
+        /// <returns></returns>
+        public string GetFEN()
+        {
+            return ChessEngine.GetFEN();
+        }
+
+        /// <summary>
+        /// Returns all legal moves for the current position.
+        /// </summary>
+        /// <returns></returns>
+        public List<ChessMove> GetLegalMoves()
+        {
+            return ChessEngine.GetLegalMoves();
+        }
+
+        /// <summary>
+        /// Returns all legal moves for the current position for the given square.
+        /// </summary>
+        /// <param name="square">Square for which to compute legal moves.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when the <paramref name="square"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the <paramref name="square"/> is empty.</exception>
+        public List<ChessMove> GetLegalMoves(ChessSquare square)
+        {
+            return ChessEngine.GetLegalMoves(square);
+        }
+
+        /// <summary>
+        /// Returns an array of all the chess moves played so far.
+        /// </summary>
+        /// <returns></returns>
+        public ChessMove[] GetMoveHistory()
+        {
+            return ChessEngine.GetMoveHistory();
         }
 
         /// <summary>
@@ -227,8 +347,12 @@ namespace ChessboardControl
         /// </summary>
         /// <param name="piece"></param>
         /// <returns></returns>
-        private Bitmap GetPieceImage(ChessPiece piece)
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="piece"/> has an invalid <see cref="ChessPieceKind"/>.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> is null.</exception>
+        public Bitmap GetPieceImage(ChessPiece piece)
         {
+            if (piece == null) { throw new ArgumentNullException(); }
+
             switch (piece.Kind)
             {
                 case ChessPieceKind.Pawn:
@@ -248,22 +372,99 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Moves a piece from one square to another square.
+        /// Resets the board’s state and setup pieces as given in the FEN.
+        /// </summary>
+        /// <param name="fen">A string describing the position of pieces in the Forsyth–Edwards Notation (FEN).</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="fen"/> is invalid.</exception>
+        /// <remarks>Use <see cref="FENValidator.Validate(string)"/> method to validate FEN strings.</remarks>
+        public void LoadFEN(string fen)
+        {
+            ChessEngine.LoadFEN(fen);
+        }
+
+        /// <summary>
+        /// Moves a piece from one square to another one.
         /// </summary>
         /// <returns>Returns the captured piece if any.</returns>
-        /// <param name="from">Coordinates of the square where the piece move from.</param>
-        /// <param name="to">Coordinates of the square where the piece move to.</param>
-        /// <exception cref="Exceptions.InvalidCoordinatesException">Thrown if there is no piece on the <paramref name="from"/> coordinates.</exception>
-        public void MovePiece(ChessSquare from, ChessSquare to)
+        /// <param name="move">An instance of a validated move. Use <see cref="CheckMoveValidity(ChessSquare, ChessSquare)"/> to get an instance of a validated <see cref="ChessMove"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="move"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown i <paramref name="move"/> is invalid.</exception>
+        public void MovePiece(ChessMove move)
         {
-            var moveValidation = ChessEngine.GetMoveValidity(from, to);
-            if (moveValidation.IsValid)
-            {
-                ChessEngine.Move(from, to);
-                RedrawSquare(from);
-                RedrawSquare(to);
-            }
+            if (move == null) { throw new ArgumentNullException(); }
+            if (!move.IsValid) { throw new ArgumentException(); }
+
+            ChessEngine.Move(move);
+            Invalidate();
         }
+
+        /// <summary>
+        /// Puts a new piece on the board.
+        /// </summary>
+        /// <param name="piece">Piece to add to the board.</param>
+        /// <param name="square">Square where to put the piece.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> or <paramref name="square"/> are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when putting the piece on the board would result to have more than one King of the same color.</exception>
+        public void PutPieceAt(ChessPiece piece, ChessSquare square)
+        {
+            ChessEngine.PutPiece(piece, square);
+        }
+
+        /// <summary>
+        /// Removes the piece on the given square.
+        /// </summary>
+        /// <param name="square">Coordinates of the square where to remove the piece.</param>
+        /// <returns>An instance of the removed piece or null if there was no piece on the square.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="square"/> is null.</exception>
+        public ChessPiece RemovePieceAt(ChessSquare square)
+        {
+            return ChessEngine.RemovePieceAt(square);
+        }
+
+        /// <summary>
+        /// Saves the control as a PNG image to the given file.
+        /// </summary>
+        /// <param name="filePath">Full path of the file to save the control in.</param>
+        public void SaveAsImage(string filePath)
+        {
+            Bitmap bmp = new Bitmap(this.Width, this.Height);
+
+            this.DrawToBitmap(bmp, new Rectangle(Point.Empty, bmp.Size));
+            bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// Defines the piece at the given position.
+        /// </summary>
+        /// <param name="square">Coordinates of the square where to set the piece.</param>
+        /// <param name="piece">Piece to set.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> or <paramref name="square"/> are null.</exception>
+        public void SetPieceAt(ChessPiece piece, ChessSquare square)
+        {
+            ChessEngine.PutPiece(piece, square);
+        }
+
+        /// <summary>
+        /// Removes all pieces and add Black and White pieces into their initial position.
+        /// </summary>
+        public void SetupInitialPosition()
+        {
+            ChessEngine.LoadFEN(Board.INITIAL_FEN_POSITION);
+            Invalidate();
+        }
+
+        /// <summary>
+        /// Undoes the last played move.
+        /// </summary>
+        /// <returns>An instance of the last move or null if there is no moves in the MoveHistory.</returns>
+        public ChessMove UndoMove()
+        {
+            return ChessEngine.UndoMove();
+        }
+
+        #endregion Public Methods
+
+        #region Private Methods
 
         private void RedrawSquare(ChessSquare targetedSquare)
         {
@@ -293,37 +494,6 @@ namespace ChessboardControl
             g.DrawRectangle(new Pen(Color.Black), borders);
 
             g.Flush();
-        }
-
-        /// <summary>
-        /// Saves the control as a PNG image to the given file.
-        /// </summary>
-        /// <param name="filePath">Full path of the file to save the control in.</param>
-        public void SaveAsImage(string filePath)
-        {
-            Bitmap bmp = new Bitmap(this.Width, this.Height);
-            
-            this.DrawToBitmap(bmp, new Rectangle(Point.Empty, bmp.Size));
-            bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
-        }
-
-        /// <summary>
-        /// Defines the piece at the given position.
-        /// </summary>
-        /// <param name="squareCoordinate">Coordinates of the square where to set the piece.</param>
-        /// <param name="piece">Piece to set.</param>
-        public void SetPieceAt(ChessSquare squareCoordinate, ChessPieceKind piece)
-        {
-            // ChessEngine.SetPieceAt(squareCoordinate, piece);
-        }
-
-        /// <summary>
-        /// Removes all pieces and add Black and White pieces into their initial position.
-        /// </summary>
-        public void SetupInitialPosition()
-        {
-            ChessEngine.LoadFEN(Board.INITIAL_FEN_POSITION);
-            Invalidate();
         }
 
         protected override void OnPaint(PaintEventArgs pe)
@@ -382,16 +552,22 @@ namespace ChessboardControl
                     ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ?
                         new ChessSquare((ChessFile)x, (ChessRank)7 - y) :
                         new ChessSquare((ChessFile)7 - x, (ChessRank)y);
-                    ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
-                    if (currentPiece != null)
+                    if (!currentSquare.Equals(DragDropOperation.Origin))
                     {
-                        g.DrawImage(GetPieceImage(currentPiece), square);
+                        ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
+                        if (currentPiece != null)
+                        {
+                            g.DrawImage(GetPieceImage(currentPiece), square);
+                        }
                     }
 
                     isLightSquare = !isLightSquare;
                 }
                 isLightSquare = !isLightSquare;
             }
+
+            //  Draw visual hints
+            DrawVisualHints(g);
 
             //  Draw borders
             var borders = new Rectangle(0, 0, Width - 1, Height - 1);
@@ -400,12 +576,11 @@ namespace ChessboardControl
             g.Flush();
         }
 
-        private void DrawVisualHints()
+        private void DrawVisualHints(Graphics g)
         {
             if (ShowVisualHints && DragDropOperation.Origin != null)
             {
                 List<ChessMove> legalMoves = ChessEngine.GetLegalMoves(DragDropOperation.Origin);
-                var g = this.CreateGraphics();
                 foreach (ChessMove chessMove in legalMoves)
                 {
                     g.FillEllipse(new SolidBrush(Color.FromArgb(150, 92, 214, 92)),
@@ -413,7 +588,6 @@ namespace ChessboardControl
                         GetHintRectangle((int)chessMove.To.File, 7 - (int)chessMove.To.Rank) :
                         GetHintRectangle(7 - (int)chessMove.To.File, (int)chessMove.To.Rank));
                 }
-                g.Flush();
             }
         }
 
@@ -422,24 +596,33 @@ namespace ChessboardControl
             return new RectangleF(DigitAreaWidth + x * SquareWidth + SquareWidth / 4, y * SquareHeight + SquareHeight / 4, SquareWidth / 2f, SquareHeight / 2f);
         }
 
-        #endregion Methods
+        #endregion Private Methods
 
         #region Delegates & Events
 
-        public delegate void SelectedSquareEventHandler(Chessboard sender, ChessSquare from, ChessPieceKind selectedPiece);
+        public delegate void SelectedSquareEventHandler(Chessboard sender, ChessSquare from, ChessPiece selectedPiece);
         [Description("Fired when the user presses the left button of the mouse on a square.")]
         public event SelectedSquareEventHandler OnSquareSelected;
 
-        public delegate void PieceMovedEventHandler(Chessboard sender, ChessSquare from, ChessSquare to, ChessPieceKind movedPiece, ChessPieceKind capturedPiece);
+        [Description("Fired when the user releases the left button of the mouse on a square.")]
+        public event EventHandler OnSquareUnselected;
+
+        public delegate void PieceMovedEventHandler(Chessboard sender, ChessMove move);
         [Description("Fired when the user moves a piece on the board.")]
         public event PieceMovedEventHandler OnPieceMoved;
 
-        public delegate void PieceRemovedEventHandler(Chessboard sender, ChessSquare from, ChessPieceKind removedPiece, Point dropPoint);
+        public delegate void PieceRemovedEventHandler(Chessboard sender, ChessSquare from, ChessPiece removedPiece, Point dropPoint);
         [Description("Fired when the user drags and drop a piece from the board to a location outside of the board.")]
         public event PieceRemovedEventHandler OnPieceRemoved;
 
-        [Description("Fired when the user releases the left button of the mouse on a square.")]
-        public event EventHandler OnSquareUnselected;
+        [Description("Fired when the player is checkmate.")]
+        public event EventHandler OnCheckmate;
+
+        [Description("Fired when the player is check.")]
+        public event EventHandler OnCheck;
+
+        [Description("Fired when the position is Draw.")]
+        public event EventHandler OnDraw;
 
         #endregion
 
@@ -458,10 +641,10 @@ namespace ChessboardControl
                 {
                     var resizedBitmap = new Bitmap(GetPieceImage(selectedPiece), new Size(SquareWidth, SquareHeight));
                     Cursor = new Cursor(resizedBitmap.GetHicon());
-                    DragDropOperation = new DragOperation(selectedPiece.Kind, origin);
+                    DragDropOperation = new DragOperation(selectedPiece, origin);
                     RedrawSquare(origin);
-                    DrawVisualHints();
-                    OnSquareSelected?.Invoke(this, origin, selectedPiece.Kind);
+                    Invalidate();
+                    OnSquareSelected?.Invoke(this, origin, selectedPiece);
                 }
             }
         }
@@ -469,7 +652,7 @@ namespace ChessboardControl
         private void Chessboard_MouseUp(object sender, MouseEventArgs e)
         {
             Cursor = Cursors.Default;
-            if (DragDropOperation.DraggedPiece != ChessPieceKind.None)
+            if (DragDropOperation.DraggedPiece != null && DragDropOperation.DraggedPiece.Kind != ChessPieceKind.None)
             {
                 if (e.X > DigitAreaWidth && e.X < this.Width && e.Y < Height - LetterAreaHeight && e.Y > 0)
                 {
@@ -477,21 +660,27 @@ namespace ChessboardControl
                     var destinationSquare = (BoardDirection == BoardDirection.BlackOnTop ?
                         new ChessSquare((ChessFile)((e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(7 - (e.Y / SquareHeight))) :
                         new ChessSquare((ChessFile)(7 - (e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(e.Y / SquareHeight)));
-                    var moveValidation = ChessEngine.GetMoveValidity(DragDropOperation.Origin, destinationSquare);
-                    if (moveValidation.IsValid)
+                    var moveValidationResult = ChessEngine.GetMoveValidity(DragDropOperation.Origin, destinationSquare);
+                    if (moveValidationResult.IsValid)
                     {
                         var promotionCancelled = false;
-                        if ((moveValidation.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion)
+                        if ((moveValidationResult.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion)
                         {
                             var pieceChooser = new FrmPromotion(ChessEngine.Turn);
                             promotionCancelled = (pieceChooser.ShowDialog() != DialogResult.OK);
-                            moveValidation.PromotedTo = pieceChooser.ChoosePiece;
+                            moveValidationResult.PromotedTo = pieceChooser.ChoosePiece;
                         }
                         if (!promotionCancelled)
                         {
-                            ChessEngine.Move(moveValidation);
-                            Invalidate();
-                            OnPieceMoved?.Invoke(this, DragDropOperation.Origin, destinationSquare, DragDropOperation.DraggedPiece, moveValidation.CapturedPiece);
+                            MovePiece(moveValidationResult);
+
+                            OnPieceMoved?.Invoke(this,                                moveValidationResult);
+                            if (ChessEngine.IsCheckmate)
+                            { OnCheckmate?.Invoke(this, new EventArgs()); }
+                            else if (ChessEngine.IsCheck)
+                            { OnCheck?.Invoke(this, new EventArgs()); }
+                            else if (ChessEngine.IsDraw)
+                            { OnDraw?.Invoke(this, new EventArgs()); }
                         }
                         else
                         {
@@ -506,11 +695,12 @@ namespace ChessboardControl
                 else
                 {
                     //  Drops a piece outside of the board
-                    RedrawSquare(DragDropOperation.Origin);
+                    ChessEngine.RemovePieceAt(DragDropOperation.Origin);
+                    Invalidate();
                     OnPieceRemoved?.Invoke(this, DragDropOperation.Origin, DragDropOperation.DraggedPiece, e.Location);
                 }
             }
-            DragDropOperation = new DragOperation(ChessPieceKind.None, null);
+            DragDropOperation = new DragOperation(null, null);
             OnSquareUnselected?.Invoke(this, new EventArgs());
         }
 
