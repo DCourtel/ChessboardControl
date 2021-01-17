@@ -12,7 +12,7 @@ namespace ChessboardControl
         /// <exception cref="ArgumentException">Thrown when <paramref name="fen"/> is null or empty.</exception>
         public FEN(string fen)
         {
-            if (string.IsNullOrWhiteSpace(fen)) { throw new ArgumentException("Argument cannot be null or empty.",nameof(fen)); }
+            if (string.IsNullOrWhiteSpace(fen)) { throw new ArgumentException("Argument cannot be null or empty.", nameof(fen)); }
             InitializeFromString(fen);
         }
 
@@ -31,6 +31,8 @@ namespace ChessboardControl
         public int HalfMoveCount { get; set; }
 
         public int MoveCount { get; set; }
+
+        internal string PiecesPosition { get { return string.Join("/", Ranks); } }
 
         #endregion Properties
 
@@ -118,13 +120,13 @@ namespace ChessboardControl
             {
                 Ranks[i] = extractedRanks[i];
             }
-            
+
             //  Turn
-            Turn = tokens[1].ToLower() == "w"? ChessColor.White: ChessColor.Black;
+            Turn = tokens[1].ToLower() == "w" ? ChessColor.White : ChessColor.Black;
 
             //  Casteling
             if (tokens[2].Contains("K")) { CastlingForWhite |= ChessCastling.KingSide; }
-            if (tokens[2].Contains("k")) { CastlingForBlack     |= ChessCastling.KingSide; }
+            if (tokens[2].Contains("k")) { CastlingForBlack |= ChessCastling.KingSide; }
             if (tokens[2].Contains("Q")) { CastlingForWhite |= ChessCastling.QueenSide; }
             if (tokens[2].Contains("q")) { CastlingForBlack |= ChessCastling.QueenSide; }
 

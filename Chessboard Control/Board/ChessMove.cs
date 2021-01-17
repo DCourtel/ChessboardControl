@@ -50,6 +50,20 @@
         /// </summary>
         public ChessSquare To { get; internal set; }
 
+        /// <summary>
+        /// Creates a clone of this instance.
+        /// </summary>
+        /// <returns>A deep clone of this instance.</returns>
+        public ChessMove Clone()
+        {
+            ChessMove clone = (ChessMove)this.MemberwiseClone();
+
+            clone.From = this.From;
+            clone.To = this.To;
+
+            return clone;            
+        }
+
         #endregion Properties
 
         #region Methods

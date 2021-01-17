@@ -35,7 +35,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace ChessboardControl
 {
@@ -192,7 +191,7 @@ namespace ChessboardControl
         /// </summary>
         public bool GameOver
         {
-            get { return FiftyMoveRule || IsCheckmate || IsStalemate || InsufficientMaterial() || InThreefoldRepetition(); }
+            get { return FiftyMoveRule || IsCheckmate || IsStalemate || IsDrawByInsufficientMaterial || InThreefoldRepetition(); }
         }
 
         /// <summary>
@@ -218,7 +217,74 @@ namespace ChessboardControl
         /// <returns></returns>
         public bool IsDraw
         {
-            get { return (FiftyMoveRule || IsStalemate || InsufficientMaterial() || InThreefoldRepetition()); }
+            get { return (FiftyMoveRule || IsStalemate || IsDrawByInsufficientMaterial || InThreefoldRepetition()); }
+        }
+
+        /// <summary>
+        /// Gets whether there is not enough material to win.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsDrawByInsufficientMaterial
+        {
+            get
+            {
+                Dictionary<ChessPieceKind, int> pieces = new Dictionary<ChessPieceKind, int>();
+                Stack<int> bishops = new Stack<int>();
+                int num_pieces = 0;
+                int sq_color = 0;
+
+                for (int file = 0; file < 7; file++)
+                {
+                    for (int rank = 0; rank < 7; rank++)
+                    {
+                        var squareIndex = 16 * rank + file;
+                        sq_color = (sq_color + 1) % 2;
+
+                        ChessPiece piece = board[squareIndex];
+                        if (piece != null)
+                        {
+                            pieces[piece.Kind] = pieces.ContainsKey(piece.Kind) ? pieces[piece.Kind] += 1 : 1;
+                            if (piece.Kind == ChessPieceKind.Bishop)
+                            {
+                                bishops.Push(sq_color);
+                            }
+                            num_pieces++;
+                        }
+                    }
+                }
+
+                /* k vs. k */
+                if (num_pieces == 2) { return true; }
+
+                /* k vs. kn .... or .... k vs. kb */
+                else if (num_pieces == 3)
+                {
+                    if (pieces.ContainsKey(ChessPieceKind.Bishop))
+                    {
+                        if (pieces[ChessPieceKind.Bishop] == 1) return true;
+                    }
+                    if (pieces.ContainsKey(ChessPieceKind.Knight))
+                    {
+                        if (pieces[ChessPieceKind.Knight] == 1) return true;
+                    }
+                }
+                /* kb vs. kb where any number of bishops are all on the same color */
+                else if (pieces.ContainsKey(ChessPieceKind.Bishop))
+                {
+                    if (num_pieces == pieces[ChessPieceKind.Bishop] + 2)
+                    {
+                        var sum = 0;
+                        var len = bishops.Count;
+                        for (var i = 0; i < len; i++)
+                        {
+                            sum += bishops.ElementAt(i);
+                        }
+                        if (sum == 0 || sum == len) return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -380,32 +446,21 @@ namespace ChessboardControl
             return moves;
         }
 
-        public string[] GetMoveHistory()
+        /// <summary>
+        /// Returns an array of all the chess moves played so far.
+        /// </summary>
+        /// <returns></returns>
+        public ChessMove[] GetMoveHistory()
         {
-            //ToDo: Refactor this method
+            BoardState[] moves = MoveHistory.ToArray();
+            List<ChessMove> result = new List<ChessMove>();
 
-            //Stack<Move> reversed_history = new Stack<Move>();
-            //Stack<string> move_history = new Stack<string>();
-            //while (history.Count > 0)
-            //{
-            //    reversed_history.Push(undo_move());
-            //}
+            for (int i = moves.Length - 1; i >= 0; i--)
+            {
+                result.Add(moves[i].Move.Clone());
+            }
 
-            //while (reversed_history.Count > 0)
-            //{
-            //    var move = reversed_history.Pop();
-            //    move_history.Push(move_to_san(move));
-            //    MovePiece(move, move.promotion);
-            //}
-
-            //string[] h = new string[move_history.Count];
-            //for (int i = h.Length - 1; i > -1; i--)
-            //{
-            //    h[i] = move_history.Pop();
-            //}
-
-            //return h;
-            return null;
+            return result.ToArray<ChessMove>();
         }
 
         /// <summary>
@@ -414,9 +469,12 @@ namespace ChessboardControl
         /// <param name="from">The source square.</param>
         /// <param name="to">The targeted square.</param>
         /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/> or <paramref name="to"/> are null.</exception>
         public ChessMove GetMoveValidity(ChessSquare from, ChessSquare to)
         {
             //  ToDo: Write unit-tests for other pieces.
+            if(from == null) { throw new ArgumentNullException(nameof(from)); }
+            if (to == null) { throw new ArgumentNullException(nameof(to)); }
             var validationResult = new ChessMove(from, to);
             var movingPiece = board[from.x88Notation];
             var capturedPiece = board[to.x88Notation];
@@ -671,111 +729,44 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Returns whether there is not enough material to win.
-        /// </summary>
-        /// <returns></returns>
-        public bool InsufficientMaterial()
-        {
-            //  ToDo: To refactor
-            //  ToDo: Write unit-tests
-            Dictionary<ChessPieceKind, int> pieces = new Dictionary<ChessPieceKind, int>();
-            Stack<int> bishops = new Stack<int>();
-            int num_pieces = 0;
-            int sq_color = 0;
-
-            for (int i = SQUARES["a8"]; i <= SQUARES["h1"]; i++)
-            {
-                sq_color = (sq_color + 1) % 2;
-                if ((i & 0x88) != 0) { i += 7; continue; }
-
-                ChessPiece piece = board[i];
-                if (piece != null)
-                {
-                    pieces[piece.Kind] = pieces.ContainsKey(piece.Kind) ? pieces[piece.Kind] += 1 : 1;
-                    if (piece.Kind == ChessPieceKind.Bishop)
-                    {
-                        bishops.Push(sq_color);
-                    }
-                    num_pieces++;
-                }
-            }
-
-            /* k vs. k */
-            if (num_pieces == 2) { return true; }
-
-            /* k vs. kn .... or .... k vs. kb */
-            else if (num_pieces == 3)
-            {
-                if (pieces.ContainsKey(ChessPieceKind.Bishop))
-                {
-                    if (pieces[ChessPieceKind.Bishop] == 1) return true;
-                }
-                if (pieces.ContainsKey(ChessPieceKind.Knight))
-                {
-                    if (pieces[ChessPieceKind.Knight] == 1) return true;
-                }
-            }
-            /* kb vs. kb where any number of bishops are all on the same color */
-            else if (pieces.ContainsKey(ChessPieceKind.Bishop))
-            {
-                if (num_pieces == pieces[ChessPieceKind.Bishop] + 2)
-                {
-                    var sum = 0;
-                    var len = bishops.Count;
-                    for (var i = 0; i < len; i++)
-                    {
-                        sum += bishops.ElementAt(i);
-                    }
-                    if (sum == 0 || sum == len) return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Returns whether the same position has repeated three time.
         /// </summary>
         /// <returns></returns>
         public bool InThreefoldRepetition()
         {
-            //  ToDo: To Refactor
             //  ToDo: Write unit-tests
-            //bool repetition = false;
-            //Stack<Move> moves = new Stack<Move>();
-            //Dictionary<string, int> positions = new Dictionary<string, int>();
+            bool repetition = false;
+            Stack<ChessMove> moves = new Stack<ChessMove>();
+            Dictionary<string, int> positions = new Dictionary<string, int>();
 
-            //while (true)
-            //{
-            //    Move move = undo_move();
-            //    if (move == null) break;
-            //    moves.Push(move);
-            //}
+            while (true)
+            {
+                ChessMove move = UndoMove();
+                if (move == null) break;
+                moves.Push(move);
+            }
 
-            //while (true)
-            //{
-            //    /* remove the last two fields in the FEN string, they're not needed
-            //     * when checking for draw by rep */
-            //    string fen = generate_fen();
-            //    string[] fenArray = fen.Split(' ');
-            //    fen = fenArray[0] + " " + fenArray[1] + " " + fenArray[2] + " " + fenArray[3];
+            while (true)
+            {
+                //  Remove the last two fields in the FEN string, they're not needed when checking for draw by rep
+                FEN fenObj = new FEN( GetFEN());
+                string fen = $"{fenObj.PiecesPosition} {fenObj.Turn} {fenObj.CastlingForWhite}{fenObj.CastlingForBlack} {fenObj.EnPassant}";
 
-            //    /* has the position occurred three or move times */
-            //    positions[fen] = (positions.ContainsKey(fen)) ? positions[fen] + 1 : 1;
-            //    if (positions[fen] >= 3)
-            //    {
-            //        repetition = true;
-            //    }
+                //  Has the position occurred three or more times?
+                positions[fen] = positions.ContainsKey(fen) ? positions[fen] + 1 : 1;
+                if (positions[fen] >= 3)
+                {
+                    repetition = true;
+                }
 
-            //    if (moves.Count < 1)
-            //    {
-            //        break;
-            //    }
-            //    MovePiece(moves.Pop());
-            //}
+                if (moves.Count < 1)
+                {
+                    break;
+                }
+                MovePiece(moves.Pop());
+            }
 
-            //return repetition;
-            return true;
+            return repetition;
         }
 
         /// <summary>
@@ -806,7 +797,7 @@ namespace ChessboardControl
                     else
                     {
                         ChessColor color = (char.IsUpper(piece)) ? ChessColor.White : ChessColor.Black;
-                        PutPiece(new ChessPiece(FEN.FenToChessPiece(piece), color), ChessSquare.GetAlgebraicNotation(square));
+                        PutPiece(new ChessPiece(FEN.FenToChessPiece(piece), color), new ChessSquare(square));
                         square++;
                     }
                 }
@@ -830,7 +821,6 @@ namespace ChessboardControl
         /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
         public void Move(ChessMove move)
         {
-            //  ToDo: Write unit-tests
             if (!move.IsValid)
             {
                 throw new IllegalMoveException(move);
@@ -845,9 +835,9 @@ namespace ChessboardControl
         /// <param name="to">Destination square.</param>
         /// <param name="promotedTo">Type of piece used in case of a pawn promotion.</param>
         /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="from"/> or <paramref name="to"/> are null.</exception>
         public void Move(ChessSquare from, ChessSquare to, ChessPieceKind promotedTo = ChessPieceKind.Queen)
         {
-            //  ToDo: Write unit-tests
             var moveValidation = GetMoveValidity(from, to);
             moveValidation.PromotedTo = promotedTo;
 
@@ -861,9 +851,8 @@ namespace ChessboardControl
         /// <param name="square"></param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> or <paramref name="square"/> are null.</exception>
         /// <exception cref="ArgumentException">Thrown whene <paramref name="square"/> is not valid or when you try to put two king of the same color.</exception>
-        public void PutPiece(ChessPiece piece, string square)
+        public void PutPiece(ChessPiece piece, ChessSquare square)
         {
-            //  ToDo: To refactor (don’t use a string for square coordinates)
             //  Check for valid Piece
             if (piece == null)
             {
@@ -874,18 +863,13 @@ namespace ChessboardControl
             {
                 throw new ArgumentNullException(nameof(square));
             }
-            if (!SQUARES.ContainsKey(square))
-            {
-                throw new ArgumentException($"'{square}' is not valid coordinates.");
-            }
 
-            int sq = SQUARES[square];
+            int sq = square.x88Notation;
 
-            /* don't let the user place more than one king */
-            if (piece.Kind == ChessPieceKind.King
-            && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
+            //  Don't let the user place more than one king
+            if (piece.Kind == ChessPieceKind.King            && !(kings[piece.Color] == EMPTY_SQUARE || kings[piece.Color] == sq))
             {
-                throw new ArgumentException("You cannot put two kings of the same color.");
+                throw new ArgumentException("You cannot put two Kings of the same color.");
             }
 
             board[sq] = piece;
@@ -927,10 +911,68 @@ namespace ChessboardControl
         /// Undoes the last played move.
         /// </summary>
         /// <returns>An instance of the last move or null if there is no moves in the MoveHistory.</returns>
-        public ChessMove Undo()
+        public ChessMove UndoMove()
         {
-            //  ToDo: Write unit-tests
-            return UndoMove();
+            if (MoveHistory.Count == 0)
+            {
+                return null;
+            }
+            BoardState old = MoveHistory.Pop();
+            if (old == null) { return null; }
+
+            ChessMove move = old.Move;
+            kings = old.Kings;
+            Turn = old.Turn;
+            castling = old.Castling;
+            ep_square = old.EP_Square;
+            half_moves = old.Half_MoveCount;
+            move_number = old.MoveCount;
+
+            ChessColor us = Turn;
+            ChessColor them = SwapColor(Turn);
+
+            board[move.From.x88Notation] = board[move.To.x88Notation];
+            board[move.From.x88Notation].Kind = move.MovingPiece; // to undo any promotions
+            board[move.To.x88Notation] = null;
+
+            if ((move.MoveKind & ChessMoveType.Capture) != 0)
+            {
+                board[move.To.x88Notation] = new ChessPiece(move.CapturedPiece, them);
+            }
+            else if ((move.MoveKind & ChessMoveType.EP_Capture) != 0)
+            {
+                int index;
+                if (us == ChessColor.Black)
+                {
+                    index = move.To.x88Notation - 16;
+                }
+                else
+                {
+                    index = move.To.x88Notation + 16;
+                }
+                board[index] = new ChessPiece(ChessPieceKind.Pawn, them);
+            }
+
+            if ((move.MoveKind & (ChessMoveType.KSide_Castle | ChessMoveType.QSide_Castle)) != 0)
+            {
+                int castling_to = 0;
+                int castling_from = 0;
+                if ((move.MoveKind & ChessMoveType.KSide_Castle) != 0)
+                {
+                    castling_to = move.To.x88Notation + 1;
+                    castling_from = move.To.x88Notation - 1;
+
+                }
+                else if ((move.MoveKind & ChessMoveType.QSide_Castle) != 0)
+                {
+                    castling_to = move.To.x88Notation - 2;
+                    castling_from = move.To.x88Notation + 1;
+                }
+                board[castling_to] = board[castling_from];
+                board[castling_from] = null;
+            }
+
+            return move;
         }
 
         #endregion Public Methods
@@ -1311,70 +1353,6 @@ namespace ChessboardControl
         private static ChessColor SwapColor(ChessColor c)
         {
             return c == ChessColor.White ? ChessColor.Black : ChessColor.White;
-        }
-
-        private ChessMove UndoMove()
-        {
-            if (MoveHistory.Count == 0)
-            {
-                return null;
-            }
-            BoardState old = MoveHistory.Pop();
-            if (old == null) { return null; }
-
-            ChessMove move = old.Move;
-            kings = old.Kings;
-            Turn = old.Turn;
-            castling = old.Castling;
-            ep_square = old.EP_Square;
-            half_moves = old.Half_MoveCount;
-            move_number = old.MoveCount;
-
-            ChessColor us = Turn;
-            ChessColor them = SwapColor(Turn);
-
-            board[move.From.x88Notation] = board[move.To.x88Notation];
-            board[move.From.x88Notation].Kind = move.MovingPiece; // to undo any promotions
-            board[move.To.x88Notation] = null;
-
-            if ((move.MoveKind & ChessMoveType.Capture) != 0)
-            {
-                board[move.To.x88Notation] = new ChessPiece(move.CapturedPiece, them);
-            }
-            else if ((move.MoveKind & ChessMoveType.EP_Capture) != 0)
-            {
-                int index;
-                if (us == ChessColor.Black)
-                {
-                    index = move.To.x88Notation - 16;
-                }
-                else
-                {
-                    index = move.To.x88Notation + 16;
-                }
-                board[index] = new ChessPiece(ChessPieceKind.Pawn, them);
-            }
-
-            if ((move.MoveKind & (ChessMoveType.KSide_Castle | ChessMoveType.QSide_Castle)) != 0)
-            {
-                int castling_to = 0;
-                int castling_from = 0;
-                if ((move.MoveKind & ChessMoveType.KSide_Castle) != 0)
-                {
-                    castling_to = move.To.x88Notation + 1;
-                    castling_from = move.To.x88Notation - 1;
-
-                }
-                else if ((move.MoveKind & ChessMoveType.QSide_Castle) != 0)
-                {
-                    castling_to = move.To.x88Notation - 2;
-                    castling_from = move.To.x88Notation + 1;
-                }
-                board[castling_to] = board[castling_from];
-                board[castling_from] = null;
-            }
-
-            return move;
         }
 
         #endregion Private Methods

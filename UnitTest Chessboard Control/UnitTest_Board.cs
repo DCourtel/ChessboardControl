@@ -97,6 +97,40 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
+        [ExpectedException(typeof(IllegalMoveException))]
+        public void Move_Should_ThrowException_When_MoveIsInvalid()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act
+            ChessMove invalidMove = board.GetMoveValidity(new ChessSquare("e2"), new ChessSquare("e5"));
+            board.Move(invalidMove);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void Move_Should_ThrowException_When_FromIsNull()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act            
+            board.Move(null, new ChessSquare("e4"));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void Move_Should_ThrowException_When_ToIsNull()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act            
+            board.Move(new ChessSquare("e2"),null);
+        }
+
+        [TestMethod]
         public void Reset_Should_ResetAndSetupInitialPosition()
         {
             //	Arrange
@@ -158,7 +192,7 @@ namespace UnitTest_Chessboard_Control
             ChessPiece piece = new ChessPiece(kindOfPiece, pieceColor);
 
             //	Act
-            board.PutPiece(piece, square);
+            board.PutPiece(piece, new ChessSquare(square));
 
             //	Assert
             Assert.IsTrue(piece.Equals(board.GetPieceAt(new ChessSquare(square))));
@@ -172,7 +206,7 @@ namespace UnitTest_Chessboard_Control
             SUT board = new SUT();
 
             //	Act
-            board.PutPiece(null, "a1");
+            board.PutPiece(null, new ChessSquare("a1"));
         }
 
         [TestMethod]
@@ -183,23 +217,22 @@ namespace UnitTest_Chessboard_Control
             SUT board = new SUT();
 
             //	Act
-            board.PutPiece(new ChessPiece( ChessPieceKind.Rook, ChessColor.Black), null);
+            board.PutPiece(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black), null);
         }
 
         [TestMethod]
         [ExpectedException(typeof(System.ArgumentException))]
-        public void PutPiece_Should_ThrowException_When_SquareIsOutsideOfTheBoard()
+        public void PutPiece_Should_ThrowException_When_ThereIsTwoKingOfTheSameColor()
         {
             //	Arrange
             SUT board = new SUT();
 
             //	Act
-            board.PutPiece(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black), "a9");
+            board.PutPiece(new ChessPiece(ChessPieceKind.King, ChessColor.Black), new ChessSquare("e5"));
         }
 
-
         [TestMethod]
-        [DataRow("e2", ChessPieceKind.Pawn , ChessColor.White)]
+        [DataRow("e2", ChessPieceKind.Pawn, ChessColor.White)]
         [DataRow("a1", ChessPieceKind.Rook, ChessColor.White)]
         [DataRow("b1", ChessPieceKind.Knight, ChessColor.White)]
         [DataRow("c1", ChessPieceKind.Bishop, ChessColor.White)]
@@ -324,7 +357,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("8/7P/2P5/8/4b3/8/6P1/1P6 b - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
         [DataRow("8/8/8/8/4n3/8/8/8 b - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
         [DataRow("8/8/8/8/4N3/8/8/8 w - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
-        public void GetLegalMoves_Should_ReturnAllLegalMoves(string fen, string from , string moves)
+        public void GetLegalMoves_Should_ReturnAllLegalMoves(string fen, string from, string moves)
         {
             //	Arrange
             SUT board = new SUT(fen);
@@ -383,7 +416,7 @@ namespace UnitTest_Chessboard_Control
             bool found = false;
             foreach (ChessMove chessMove in legalMoves)
             {
-                if(chessMove.MoveKind == ChessMoveType.KSide_Castle) { found = true; }
+                if (chessMove.MoveKind == ChessMoveType.KSide_Castle) { found = true; }
             }
             Assert.IsTrue(found);
         }
@@ -406,6 +439,45 @@ namespace UnitTest_Chessboard_Control
                 if (chessMove.MoveKind == ChessMoveType.QSide_Castle) { found = true; }
             }
             Assert.IsTrue(found);
+        }
+
+        [TestMethod]
+        public void GetMoveHistory_Should_Retun_AllTheMoves()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            List<ChessMove> playedMoves = new List<ChessMove>();
+            ChessMove[] moveHistory;
+            int moveCount = 0;
+            List<ChessMove> legalMoves = board.GetLegalMoves();
+            System.Random randomizer = new System.Random(System.DateTime.Now.Second);
+
+            //	Act
+            do
+            {
+                var moveIndex = randomizer.Next(0, legalMoves.Count);
+                board.Move(legalMoves[moveIndex]);
+                playedMoves.Add(legalMoves[moveIndex]);
+
+                legalMoves = board.GetLegalMoves();
+                moveCount++;
+            } while (legalMoves.Count > 0 && moveCount < 30);
+            moveHistory = board.GetMoveHistory();
+
+            //	Assert
+            Assert.IsNotNull(moveHistory);
+            Assert.AreEqual(playedMoves.Count, moveHistory.Length);
+            for (int i = 0; i < moveHistory.Length; i++)
+            {
+                Assert.AreEqual(moveHistory[i].CapturedPiece, playedMoves[i].CapturedPiece);
+                Assert.IsTrue(moveHistory[i].From.Equals(playedMoves[i].From));
+                Assert.IsTrue(moveHistory[i].To.Equals(playedMoves[i].To));
+                Assert.AreEqual(moveHistory[i].IsValid, playedMoves[i].IsValid);
+                Assert.AreEqual(moveHistory[i].MoveKind, playedMoves[i].MoveKind);
+                Assert.AreEqual(moveHistory[i].MovingPiece, playedMoves[i].MovingPiece);
+                Assert.AreEqual(moveHistory[i].PromotedTo, playedMoves[i].PromotedTo);
+                Assert.AreEqual(moveHistory[i].IllegalReason, playedMoves[i].IllegalReason);
+            }
         }
 
         [TestMethod]
@@ -444,6 +516,35 @@ namespace UnitTest_Chessboard_Control
             Assert.AreEqual(ChessMoveRejectedReason.NotYourTurn, actualResult.IllegalReason);
         }
 
+        [TestMethod]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")]
+        [DataRow("1K6/8/8/2Pk4/8/8/8/8 w - - 0 1")]
+        [DataRow("1K6/8/6B1/3k4/8/8/5B2/8 w - - 0 1")]
+        [DataRow("1K6/8/6N1/3k4/8/8/5N2/8 w - - 0 1")]
+        [DataRow("1K6/8/8/3k4/8/8/5R2/8 w - - 0 1")]
+        [DataRow("1K6/8/8/3k4/8/8/5Q2/8 w - - 0 1")]
+        public void InsufficientMaterial_Should_ReturnFalse(string fen)
+        {
+            //	Arrange
+            SUT board = new SUT(fen);
+
+            //	Assert
+            Assert.IsFalse(board.IsDrawByInsufficientMaterial);
+        }
+
+        [TestMethod]
+        [DataRow("1K6/8/8/3k4/8/8/8/8 w - - 0 1")]
+        [DataRow("1K6/8/8/3k4/8/8/N7/8 w - - 0 1")]
+        [DataRow("1K6/8/8/3k4/8/8/B7/8 w - - 0 1")]
+        [DataRow("1K6/5b2/8/3k4/8/8/8/3B4 w - - 0 1")]
+        public void InsufficientMaterial_Should_ReturnTrue(string fen)
+        {
+            //	Arrange
+            SUT board = new SUT(fen);
+
+            //	Assert
+            Assert.IsTrue(board.IsDrawByInsufficientMaterial);
+        }
 
         //  Pawn - Legal Moves
 
