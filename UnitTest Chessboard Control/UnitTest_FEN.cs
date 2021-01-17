@@ -49,5 +49,58 @@ namespace UnitTest_Chessboard_Control
             Assert.AreEqual(int.Parse(moves), fenObj.MoveCount);
             Assert.AreEqual(turn.Trim() == "w"? ChessColor.White: ChessColor.Black, fenObj.Turn);
         }
+
+        [TestMethod]
+        [DataRow(ChessPieceKind.None, ChessColor.White, "")]
+        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
+        [DataRow(ChessPieceKind.Knight, ChessColor.White, "N")]
+        [DataRow(ChessPieceKind.Bishop, ChessColor.White, "B")]
+        [DataRow(ChessPieceKind.Queen, ChessColor.White, "Q")]
+        [DataRow(ChessPieceKind.King, ChessColor.White, "K")]
+        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
+        [DataRow(ChessPieceKind.None, ChessColor.Black, "")]
+        [DataRow(ChessPieceKind.Knight, ChessColor.Black, "n")]
+        [DataRow(ChessPieceKind.Bishop, ChessColor.Black, "b")]
+        [DataRow(ChessPieceKind.Queen, ChessColor.Black, "q")]
+        [DataRow(ChessPieceKind.King, ChessColor.Black, "k")]
+        public void ChessPieceToFEN_Should_ReturnCorrectFENPiece(ChessPieceKind pieceKind, ChessColor pieceColor, string expectedFEN)
+        {
+            //	Assert
+            Assert.AreEqual(expectedFEN, SUT.ChessPieceToFEN(new ChessPiece(pieceKind, pieceColor)));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void ChessPieceToFEN_Should_ThrowArgumentNullException_WhenPieceIsNull()
+        {
+            SUT.ChessPieceToFEN(null);
+        }
+
+        [TestMethod]
+        [DataRow('p', ChessPieceKind.Pawn)]
+        [DataRow('r', ChessPieceKind.Rook)]
+        [DataRow('n', ChessPieceKind.Knight)]
+        [DataRow('b', ChessPieceKind.Bishop)]
+        [DataRow('q', ChessPieceKind.Queen)]
+        [DataRow('k', ChessPieceKind.King)]
+        [DataRow('P', ChessPieceKind.Pawn)]
+        [DataRow('R', ChessPieceKind.Rook)]
+        [DataRow('N', ChessPieceKind.Knight)]
+        [DataRow('B', ChessPieceKind.Bishop)]
+        [DataRow('Q', ChessPieceKind.Queen)]
+        [DataRow('K', ChessPieceKind.King)]
+        public void FenToChessPiece_Should_Return_ChessPieceKind(char piece, ChessPieceKind expectedResult)
+        {
+            //	Assert
+            Assert.AreEqual(expectedResult, SUT.FenToChessPiece(piece));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentOutOfRangeException))]
+        public void FenToChessPiece_Should_ThrowArgumentOutOfRangeException()
+        {
+            //	Act
+            SUT.FenToChessPiece('v');
+        }
     }
 }

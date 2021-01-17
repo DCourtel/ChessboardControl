@@ -85,6 +85,18 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void LoadFEN_Should_ThrowArgumentException()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act
+            board.Clear();
+            board.LoadFEN("rnbqkbnr/1p1p1ppp/p3p3/NP3/8/PPP2PPP/RNBQKB1R w KQkq - 0 5");
+        }
+
+        [TestMethod]
         public void Reset_Should_ResetAndSetupInitialPosition()
         {
             //	Arrange
@@ -123,6 +135,17 @@ namespace UnitTest_Chessboard_Control
             Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("f8"))));
             Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("g8"))));
             Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("h8"))));
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void GetPieceAt_Should_ThrowArgumentNullExecption()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //  Act
+            board.GetPieceAt(null);
         }
 
         [TestMethod]
@@ -200,7 +223,7 @@ namespace UnitTest_Chessboard_Control
 
 
         [TestMethod]
-        public void RemovePieceAt_Should_ReturnsNull()
+        public void RemovePieceAt_Should_ReturnNull()
         {
             //	Arrange
             SUT board = new SUT();
@@ -248,57 +271,28 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [DataRow(ChessPieceKind.None, ChessColor.White, "")]
-        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
-        [DataRow(ChessPieceKind.Knight, ChessColor.White, "N")]
-        [DataRow(ChessPieceKind.Bishop, ChessColor.White, "B")]
-        [DataRow(ChessPieceKind.Queen, ChessColor.White, "Q")]
-        [DataRow(ChessPieceKind.King, ChessColor.White, "K")]
-        [DataRow(ChessPieceKind.Rook, ChessColor.White, "R")]
-        [DataRow(ChessPieceKind.None, ChessColor.Black, "")]
-        [DataRow(ChessPieceKind.Knight, ChessColor.Black, "n")]
-        [DataRow(ChessPieceKind.Bishop, ChessColor.Black, "b")]
-        [DataRow(ChessPieceKind.Queen, ChessColor.Black, "q")]
-        [DataRow(ChessPieceKind.King, ChessColor.Black, "k")]
-        public void ChessPieceToFEN_Should_ReturnCorrectFENPiece(ChessPieceKind pieceKind, ChessColor pieceColor, string expectedFEN)
+        public void Ascii_Should_ReturnEmptyBoard()
         {
-            //	Assert
-            Assert.AreEqual(expectedFEN, SUT.ChessPieceToFEN(new ChessPiece(pieceKind, pieceColor)));
-        }
+            //	Arrange
+            SUT board = new SUT();
+            string actual;
 
-        [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
-        public void ChessPieceToFEN_Should_ThrowArgumentNullException_WhenPieceIsNull()
-        {
-            SUT.ChessPieceToFEN(null);
-        }
-
-
-        [TestMethod]
-        [DataRow('p', ChessPieceKind.Pawn)]
-        [DataRow('r', ChessPieceKind.Rook)]
-        [DataRow('n', ChessPieceKind.Knight)]
-        [DataRow('b', ChessPieceKind.Bishop)]
-        [DataRow('q', ChessPieceKind.Queen)]
-        [DataRow('k', ChessPieceKind.King)]
-        [DataRow('P', ChessPieceKind.Pawn)]
-        [DataRow('R', ChessPieceKind.Rook)]
-        [DataRow('N', ChessPieceKind.Knight)]
-        [DataRow('B', ChessPieceKind.Bishop)]
-        [DataRow('Q', ChessPieceKind.Queen)]
-        [DataRow('K', ChessPieceKind.King)]
-        public void FenToChessPiece_Should_Return_ChessPieceKind(char piece, ChessPieceKind expectedResult)
-        {
-            //	Assert
-            Assert.AreEqual(expectedResult, SUT.FenToChessPiece(piece));
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(System.ArgumentOutOfRangeException))]
-        public void FenToChessPiece_Should_ThrowArgumentOutOfRangeException()
-        {
             //	Act
-            SUT.FenToChessPiece('v');
+            board.Clear();
+            actual = board.Ascii();
+
+            //	Assert
+            Assert.AreEqual("   +------------------------+\n" +
+                " 8 | .  .  .  .  .  .  .  . |\n" +
+                " 7 | .  .  .  .  .  .  .  . |\n" +
+                " 6 | .  .  .  .  .  .  .  . |\n" +
+                " 5 | .  .  .  .  .  .  .  . |\n" +
+                " 4 | .  .  .  .  .  .  .  . |\n" +
+                " 3 | .  .  .  .  .  .  .  . |\n" +
+                " 2 | .  .  .  .  .  .  .  . |\n" +
+                " 1 | .  .  .  .  .  .  .  . |\n" +
+                "   +------------------------+\n" +
+                "     a  b  c  d  e  f  g  h\n", actual);
         }
 
         [TestMethod]
@@ -415,7 +409,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void IsMoveLegal_Should_Return_False_When_NoPieceOnFromSquare()
+        public void GetMoveValidity_Should_Return_False_When_NoPieceOnFromSquare()
         {
             //	Arrange
             var superBoard = new Board();
@@ -433,7 +427,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void IsMoveLegal_Should_Return_False_When_NotRightTurn()
+        public void GetMoveValidity_Should_Return_False_When_NotRightTurn()
         {
             //	Arrange
             var superBoard = new Board();
@@ -534,7 +528,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f4", "f3", ChessMoveType.Normal)]
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g4", "g3", ChessMoveType.Normal)]
         [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h4", "h3", ChessMoveType.Normal)]
-        public void IsMoveLegal_Should_Return_True_When_PawnMoveIsLegal(
+        public void GetMoveValidity_Should_Return_True_When_PawnMoveIsLegal(
             string fen,
             string from,
             string to,
@@ -666,7 +660,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppp1p/8/8/5Pp1/8/PPPPP1PP/RNBQKBNR b KQkq f3 0 1", "g4", "f3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
         [DataRow("rnbqkbnr/pppppp1p/8/8/6pP/8/PPPPPPP1/RNBQKBNR b KQkq h3 0 1", "g4", "h3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
         [DataRow("rnbqkbnr/ppppppp1/8/8/6Pp/8/PPPPPP1P/RNBQKBNR b KQkq g3 0 1", "h4", "g3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        public void IsMoveLegal_Should_Return_True_When_PawnCaptureIsLegal(
+        public void GetMoveValidity_Should_Return_True_When_PawnCaptureIsLegal(
             string fen,
             string from,
             string to,
@@ -811,7 +805,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "f4", ChessMoveRejectedReason.NotMovingLikeThis)]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "e5", ChessMoveRejectedReason.NotMovingLikeThis)]
         [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        public void IsMoveLegal_Should_Return_False_When_PawnMoveIsIllegal(
+        public void GetMoveValidity_Should_Return_False_When_PawnMoveIsIllegal(
             string fen,
             string from,
             string to,

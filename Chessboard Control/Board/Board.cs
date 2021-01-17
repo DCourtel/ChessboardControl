@@ -255,7 +255,7 @@ namespace ChessboardControl
                 for (int file = 0; file < 8; file++)
                 {
                     var piece = board[16 * rank + file];
-                    ascii.Append(piece == null ? " . " : $" {ChessPieceToFEN(piece)} ");
+                    ascii.Append(piece == null ? " . " : $" {FEN.ChessPieceToFEN(piece)} ");
                 }
                 ascii.Append("|\n");
             }
@@ -265,45 +265,6 @@ namespace ChessboardControl
             ascii.Append("     a  b  c  d  e  f  g  h\n");
 
             return ascii.ToString();
-        }
-
-        /// <summary>
-        /// Returns the FEN abreviation of the piece.
-        /// </summary>
-        /// <param name="piece"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="piece"/> is null.</exception>
-        public static string ChessPieceToFEN(ChessPiece piece)
-        {
-            if(piece == null) { throw new ArgumentNullException(nameof(piece)); }
-            var result = "";
-
-            switch (piece.Kind)
-            {
-                case ChessPieceKind.None:
-                    result = "";
-                    break;
-                case ChessPieceKind.Pawn:
-                    result = "p";
-                    break;
-                case ChessPieceKind.Knight:
-                    result = "n";
-                    break;
-                case ChessPieceKind.Bishop:
-                    result = "b";
-                    break;
-                case ChessPieceKind.Rook:
-                    result = "r";
-                    break;
-                case ChessPieceKind.Queen:
-                    result = "q";
-                    break;
-                case ChessPieceKind.King:
-                    result = "k";
-                    break;
-            }
-
-            return (piece.Color == ChessColor.White ? result.ToUpper() : result.ToLower());
         }
 
         /// <summary>
@@ -322,33 +283,7 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Returns the kind of a chess piece corresponding to its FEN abbreviation.
-        /// </summary>
-        /// <param name="fenPiece">Case insensitive FEN abbreviation. Possible values are: p, n, b, r, q, k.</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the char doesn’t match any FEN formatted chess piece kind.</exception>
-        public static ChessPieceKind FenToChessPiece(char fenPiece)
-        {
-            switch (char.ToLower(fenPiece))
-            {
-                case 'p':
-                    return ChessPieceKind.Pawn;
-                case 'n':
-                    return ChessPieceKind.Knight;
-                case 'b':
-                    return ChessPieceKind.Bishop;
-                case 'r':
-                    return ChessPieceKind.Rook;
-                case 'q':
-                    return ChessPieceKind.Queen;
-                case 'k':
-                    return ChessPieceKind.King;
-            }
-            throw new ArgumentOutOfRangeException(nameof(fenPiece), $"Unable to translate {fenPiece} into a ChessPiece.");
-        }
-
-        /// <summary>
-        /// Gets the castling possibility for the given side.
+        /// Gets the castling possibilities for the given side.
         /// </summary>
         /// <param name="side"></param>
         /// <returns></returns>
@@ -385,7 +320,7 @@ namespace ChessboardControl
                             fen += emptySquareCount.ToString();
                             emptySquareCount = 0;
                         }
-                        fen += ChessPieceToFEN(board[squareIndex]);
+                        fen += FEN.ChessPieceToFEN(board[squareIndex]);
                     }
                 }
                 if (emptySquareCount > 0)
@@ -447,6 +382,8 @@ namespace ChessboardControl
 
         public string[] GetMoveHistory()
         {
+            //ToDo: Refactor this method
+
             //Stack<Move> reversed_history = new Stack<Move>();
             //Stack<string> move_history = new Stack<string>();
             //while (history.Count > 0)
@@ -471,8 +408,15 @@ namespace ChessboardControl
             return null;
         }
 
+        /// <summary>
+        /// Validates a move against chess rules.
+        /// </summary>
+        /// <param name="from">The source square.</param>
+        /// <param name="to">The targeted square.</param>
+        /// <returns></returns>
         public ChessMove GetMoveValidity(ChessSquare from, ChessSquare to)
         {
+            //  ToDo: Write unit-tests for other pieces.
             var validationResult = new ChessMove(from, to);
             var movingPiece = board[from.x88Notation];
             var capturedPiece = board[to.x88Notation];
@@ -714,7 +658,7 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Gets the piece on the given square or null if there is no piece on the square.
+        /// Gets the piece on a given square or null if there is no piece on the square.
         /// </summary>
         /// <param name="square"></param>
         /// <returns></returns>
@@ -732,6 +676,8 @@ namespace ChessboardControl
         /// <returns></returns>
         public bool InsufficientMaterial()
         {
+            //  ToDo: To refactor
+            //  ToDo: Write unit-tests
             Dictionary<ChessPieceKind, int> pieces = new Dictionary<ChessPieceKind, int>();
             Stack<int> bishops = new Stack<int>();
             int num_pieces = 0;
@@ -793,6 +739,8 @@ namespace ChessboardControl
         /// <returns></returns>
         public bool InThreefoldRepetition()
         {
+            //  ToDo: To Refactor
+            //  ToDo: Write unit-tests
             //bool repetition = false;
             //Stack<Move> moves = new Stack<Move>();
             //Dictionary<string, int> positions = new Dictionary<string, int>();
@@ -858,7 +806,7 @@ namespace ChessboardControl
                     else
                     {
                         ChessColor color = (char.IsUpper(piece)) ? ChessColor.White : ChessColor.Black;
-                        PutPiece(new ChessPiece(FenToChessPiece(piece), color), ChessSquare.GetAlgebraicNotation(square));
+                        PutPiece(new ChessPiece(FEN.FenToChessPiece(piece), color), ChessSquare.GetAlgebraicNotation(square));
                         square++;
                     }
                 }
@@ -882,6 +830,7 @@ namespace ChessboardControl
         /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
         public void Move(ChessMove move)
         {
+            //  ToDo: Write unit-tests
             if (!move.IsValid)
             {
                 throw new IllegalMoveException(move);
@@ -890,7 +839,7 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Move a piece from one square to another square.
+        /// Moves a piece from one square to another square.
         /// </summary>
         /// <param name="from">Origin square.</param>
         /// <param name="to">Destination square.</param>
@@ -898,6 +847,7 @@ namespace ChessboardControl
         /// <exception cref="IllegalMoveException">Thrown when the requested move is illegal.</exception>
         public void Move(ChessSquare from, ChessSquare to, ChessPieceKind promotedTo = ChessPieceKind.Queen)
         {
+            //  ToDo: Write unit-tests
             var moveValidation = GetMoveValidity(from, to);
             moveValidation.PromotedTo = promotedTo;
 
@@ -913,6 +863,7 @@ namespace ChessboardControl
         /// <exception cref="ArgumentException">Thrown whene <paramref name="square"/> is not valid or when you try to put two king of the same color.</exception>
         public void PutPiece(ChessPiece piece, string square)
         {
+            //  ToDo: To refactor (don’t use a string for square coordinates)
             //  Check for valid Piece
             if (piece == null)
             {
@@ -953,7 +904,7 @@ namespace ChessboardControl
         }
 
         /// <summary>
-        /// Removes a piece from the given square.
+        /// Removes the piece on the given square.
         /// </summary>
         /// <param name="square">Coordinates of the square where to remove the piece.</param>
         /// <returns>An instance of the removed piece or null if there was no piece on the square.</returns>
@@ -972,31 +923,14 @@ namespace ChessboardControl
             return piece;
         }
 
-        public UndoMoveResult Undo()
-        {
-            ChessMove move = UndoMove();
-            if (move == null)
-            {
-                return null;
-            }
-
-            return new UndoMoveResult()
-            {
-                MovedPieceColor = Turn,
-                From = move.From,
-                To = move.To,
-                MovedPiece = move.MovingPiece
-            };
-        }
-
         /// <summary>
-        /// Checks whether a FEN string is valid or not.
+        /// Undoes the last played move.
         /// </summary>
-        /// <param name="fen"></param>
-        /// <returns></returns>
-        public FENValidationResult ValidateFen(string fen)
+        /// <returns>An instance of the last move or null if there is no moves in the MoveHistory.</returns>
+        public ChessMove Undo()
         {
-            return FENValidator.Validate(fen);
+            //  ToDo: Write unit-tests
+            return UndoMove();
         }
 
         #endregion Public Methods

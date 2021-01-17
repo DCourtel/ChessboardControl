@@ -24,10 +24,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>bin\Release\</OutputPath>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup>
     <RootNamespace>ChessboardControl</RootNamespace>
@@ -61,7 +63,6 @@
     <Compile Include="Board\ChessSquare.cs" />
     <Compile Include="Board\ChessMove.cs" />
     <Compile Include="Board\Board.cs" />
-    <Compile Include="Board\UndoMoveResult.cs" />
     <Compile Include="Chessboard.cs">
       <SubType>Component</SubType>
     </Compile>

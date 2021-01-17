@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace ChessboardControl
 {
@@ -11,8 +7,14 @@ namespace ChessboardControl
     {
         private static string chessPieces = "prnbkqPRNBKQ";
 
+        /// <summary>
+        /// Checks whether a FEN string is valid or not.
+        /// </summary>
+        /// <param name="fen"></param>
+        /// <returns></returns>
         public static FENValidationResult Validate(string fen)
         {
+            //  ToDo: Add unit-tests for invalid FEN
             //  rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 
             if (string.IsNullOrWhiteSpace(fen)) { return new FENValidationResult("The string is null or empty."); }
@@ -31,20 +33,22 @@ namespace ChessboardControl
                 if (!IsValidRank(ranks[i])) { return new FENValidationResult($"{ranks[i]} is not a valid rank description."); }
             }
 
-            //  9th token should be "w" or "b"
+            //  2th token should be "w" or "b"
             if (tokens[1].ToLower() != "w" && tokens[1].ToLower() != "b") { return new FENValidationResult($"{tokens[1]} is not a valid turn description."); }
 
-            //  10th token should be a valid castling description
+            //  3th token should be a valid castling description
             if (!IsValidCastlingDescription(tokens[2])) { return new FENValidationResult($"{tokens[2]} is not a valid castling description."); }
 
-            //  11th token should "-" or algebraic coordinates
+            //  4th token should "-" or algebraic coordinates
             if (tokens[3] != "-" && !IsAlgebraicCoordinate(tokens[3])) { return new FENValidationResult($"{tokens[3]} is not a valid En-Passant description."); }
 
-            //  12th token should be an integer
+            //  5th token should be an integer
             if (!int.TryParse(tokens[4], out int _)) { return new FENValidationResult($"{tokens[4]} is not a valid integer."); }
 
-            //  13th token should be an integer
+            //  6th token should be an integer
             if (!int.TryParse(tokens[5], out int _)) { return new FENValidationResult($"{tokens[5]} is not a valid integer."); }
+
+            //  ToDo: Add global validations.
 
             return new FENValidationResult() { IsValid = true };
         }
