@@ -48,34 +48,31 @@ namespace ChessboardControl
         public static string ChessPieceToFEN(ChessPiece piece)
         {
             if (piece == null) { throw new ArgumentNullException(nameof(piece)); }
-            var result = "";
-
-            switch (piece.Kind)
-            {
-                case ChessPieceKind.None:
-                    result = "";
-                    break;
-                case ChessPieceKind.Pawn:
-                    result = "p";
-                    break;
-                case ChessPieceKind.Knight:
-                    result = "n";
-                    break;
-                case ChessPieceKind.Bishop:
-                    result = "b";
-                    break;
-                case ChessPieceKind.Rook:
-                    result = "r";
-                    break;
-                case ChessPieceKind.Queen:
-                    result = "q";
-                    break;
-                case ChessPieceKind.King:
-                    result = "k";
-                    break;
-            }
+            var result = ChessPieceKindToFEN(piece.Kind);
 
             return (piece.Color == ChessColor.White ? result.ToUpper() : result.ToLower());
+        }
+
+        public static string ChessPieceKindToFEN(ChessPieceKind kind)
+        {
+            switch (kind)
+            {
+                case ChessPieceKind.None:
+                    return "";
+                case ChessPieceKind.Pawn:
+                    return "p";
+                case ChessPieceKind.Knight:
+                    return "n";
+                case ChessPieceKind.Bishop:
+                    return "b";
+                case ChessPieceKind.Rook:
+                    return "r";
+                case ChessPieceKind.Queen:
+                    return "q";
+                case ChessPieceKind.King:
+                    return "k";
+            }
+            throw new ArgumentException($"Unable to translate {kind} into a FEN abbreviation.");
         }
 
         /// <summary>

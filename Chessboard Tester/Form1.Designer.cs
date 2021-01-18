@@ -47,6 +47,7 @@ namespace ChessboardTester
             this.ChkBxShowVisualHints = new System.Windows.Forms.CheckBox();
             this.chessboard1 = new ChessboardControl.Chessboard();
             this.LblGameStatus = new System.Windows.Forms.Label();
+            this.BtnUndoMove = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // BtnClear
@@ -144,7 +145,7 @@ namespace ChessboardTester
             // 
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(359, 192);
+            this.label2.Location = new System.Drawing.Point(359, 183);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(49, 13);
             this.label2.TabIndex = 6;
@@ -164,7 +165,7 @@ namespace ChessboardTester
             "f",
             "g",
             "h"});
-            this.CmbBxMoveToLetter.Location = new System.Drawing.Point(362, 209);
+            this.CmbBxMoveToLetter.Location = new System.Drawing.Point(362, 200);
             this.CmbBxMoveToLetter.Name = "CmbBxMoveToLetter";
             this.CmbBxMoveToLetter.Size = new System.Drawing.Size(71, 21);
             this.CmbBxMoveToLetter.TabIndex = 7;
@@ -202,7 +203,7 @@ namespace ChessboardTester
             "6",
             "7",
             "8"});
-            this.CmbBxMoveToDigit.Location = new System.Drawing.Point(362, 236);
+            this.CmbBxMoveToDigit.Location = new System.Drawing.Point(362, 227);
             this.CmbBxMoveToDigit.Name = "CmbBxMoveToDigit";
             this.CmbBxMoveToDigit.Size = new System.Drawing.Size(71, 21);
             this.CmbBxMoveToDigit.TabIndex = 8;
@@ -210,7 +211,7 @@ namespace ChessboardTester
             // BtnMovePiece
             // 
             this.BtnMovePiece.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.BtnMovePiece.Location = new System.Drawing.Point(358, 263);
+            this.BtnMovePiece.Location = new System.Drawing.Point(358, 254);
             this.BtnMovePiece.Name = "BtnMovePiece";
             this.BtnMovePiece.Size = new System.Drawing.Size(75, 23);
             this.BtnMovePiece.TabIndex = 9;
@@ -282,6 +283,17 @@ namespace ChessboardTester
             this.LblGameStatus.TabIndex = 19;
             this.LblGameStatus.Text = "Game status: ";
             // 
+            // BtnUndoMove
+            // 
+            this.BtnUndoMove.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.BtnUndoMove.Location = new System.Drawing.Point(358, 283);
+            this.BtnUndoMove.Name = "BtnUndoMove";
+            this.BtnUndoMove.Size = new System.Drawing.Size(75, 23);
+            this.BtnUndoMove.TabIndex = 9;
+            this.BtnUndoMove.Text = "Undo Move";
+            this.BtnUndoMove.UseVisualStyleBackColor = true;
+            this.BtnUndoMove.Click += new System.EventHandler(this.BtnUndoMove_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -292,6 +304,7 @@ namespace ChessboardTester
             this.Controls.Add(this.ChkBxShowVisualHints);
             this.Controls.Add(this.BtnSaveToFile);
             this.Controls.Add(this.ChkBxFlipBoard);
+            this.Controls.Add(this.BtnUndoMove);
             this.Controls.Add(this.BtnMovePiece);
             this.Controls.Add(this.CmbBxMoveToLetter);
             this.Controls.Add(this.CmbBxMoveToDigit);
@@ -334,6 +347,7 @@ namespace ChessboardTester
         private System.Windows.Forms.CheckBox ChkBxShowVisualHints;
         private ChessboardControl.Chessboard chessboard1;
         private System.Windows.Forms.Label LblGameStatus;
+        private System.Windows.Forms.Button BtnUndoMove;
     }
 }
 

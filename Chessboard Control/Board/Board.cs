@@ -739,7 +739,10 @@ namespace ChessboardControl
                 //  Checks if making the move will put the King in Check
                 MovePiece(validationResult);
                 Turn = SwapColor(Turn);
-                if (IsKingAttacked(Turn))
+                var isKingAttached = IsKingAttacked(Turn);
+                UndoMove();
+
+                if (isKingAttached)
                 {
                     validationResult.IllegalReason = ChessMoveRejectedReason.PutKingInCheck;
                 }
@@ -748,7 +751,6 @@ namespace ChessboardControl
                     validationResult.IsValid = true;
                     validationResult.IllegalReason = ChessMoveRejectedReason.None;
                 }
-                UndoMove();
             }
             else
             {
@@ -1012,6 +1014,106 @@ namespace ChessboardControl
         #endregion Public Methods
 
         #region Private Methods
+
+        /// <summary>
+        /// Converts a full <see cref="ChessMove"/> to its Standard Algebraic Notation (SAN).
+        /// </summary>
+        /// <param name="move">A valid <see cref="ChessMove"/> to convert to Standard Algebraic Notation (SAN).</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="move"/> is not a valid move.</exception>
+        internal string MoveToSAN(ChessMove move)
+        {
+            if (!move.IsValid) { throw new ArgumentException("The move is not valid."); }
+            var kingStatus = string.Empty;
+
+            //  Check and Checkmate
+            if (IsCheck)
+            {
+                kingStatus = "+";
+                if (IsCheckmate) { kingStatus = "#"; }
+            }
+
+            //  Pawn
+            if (move.MovingPiece.Kind == ChessPieceKind.Pawn)
+            {
+                var promotion = "";
+                //  Promotion without capture
+                if ((move.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion) { promotion = $"={FEN.ChessPieceKindToFEN(move.PromotedTo).ToUpper()}"; }
+                if (move.MoveKind == ChessMoveType.Promotion) { return $"{move.To.AlgebraicNotation}{promotion}{kingStatus}"; }
+                //  Move without capturing
+                if (move.MoveKind == ChessMoveType.Normal || move.MoveKind == ChessMoveType.Big_Pawn) { return $"{move.To.AlgebraicNotation}{kingStatus}"; }
+                //  Capture
+                if ((move.MoveKind & ChessMoveType.EP_Capture) == ChessMoveType.EP_Capture) { return $"{move.From.File}x{move.To.AlgebraicNotation} e.p.{kingStatus}"; }
+                return $"{move.From.File}x{move.To.AlgebraicNotation}{promotion}{kingStatus}";
+            }
+
+            //  King
+            if (move.MovingPiece.Kind == ChessPieceKind.King)
+            {
+                //  Roque
+                if (move.MoveKind == ChessMoveType.KSide_Castle) { return "O-O"; }
+                if (move.MoveKind == ChessMoveType.QSide_Castle) { return "O-O-O"; }
+                //  Move without capturing
+                if (move.MoveKind == ChessMoveType.Normal) { return $"K{move.To.AlgebraicNotation}"; }
+                //  Capture
+                return $"Kx{move.To.AlgebraicNotation}{kingStatus}";
+            }
+
+            //  Sliding pieces
+            var pieceAbrev = FEN.ChessPieceToFEN(move.MovingPiece).ToUpper();
+            var disambiguator = GetDisambiguator(move);
+
+            return $"{pieceAbrev}{disambiguator}{((move.MoveKind & ChessMoveType.Capture) == ChessMoveType.Capture ? "x" : "")}{move.To.AlgebraicNotation}{kingStatus}";
+        }
+
+        private string GetDisambiguator(ChessMove move)
+        {
+            Dictionary<ChessFile, int> matchingFiles = new Dictionary<ChessFile, int>();
+            Dictionary<ChessRank, int> matchingRanks = new Dictionary<ChessRank, int>();
+            List<ChessSquare> candidateSquares = GetAllPieces(move.MovingPiece.Kind, Turn, move);
+
+            if (candidateSquares.Count < 2) { return string.Empty; }
+
+            foreach (ChessSquare square in candidateSquares)
+            {
+                if (matchingFiles.ContainsKey(square.File)) { matchingFiles[square.File]++; } else { matchingFiles.Add(square.File, 1); }
+                if (matchingRanks.ContainsKey(square.Rank)) { matchingRanks[square.Rank]++; } else { matchingRanks.Add(square.Rank, 1); }
+            }
+            var cannotUseFile = false;
+            var cannotUseRank = false;
+            foreach (var fileCount in matchingFiles.Values)
+            {
+                if (fileCount > 1) { cannotUseFile = true; }
+            }
+            foreach (var rankCount in matchingRanks.Values)
+            {
+                if (rankCount > 1) { cannotUseRank = true; }
+            }
+            if (cannotUseFile && cannotUseRank) { return $"{move.From.File}{1 + (int)move.From.Rank}"; }
+            if (cannotUseFile) { return (1 + (int)move.From.Rank).ToString(); }
+
+            return move.From.File.ToString();
+        }
+
+        private List<ChessSquare> GetAllPieces(ChessPieceKind pieceKind, ChessColor color, ChessMove move)
+        {
+            List<ChessSquare> candidates = new List<ChessSquare>();
+
+            for (int file = 0; file < 8; file++)
+            {
+                for (int rank = 0; rank < 8; rank++)
+                {
+                    var index = 16 * rank + file;
+                    var piece = board[index];
+                    if (piece != null && piece.Kind == pieceKind && piece.Color == color && PieceCanAttack(index, move.To.x88Notation))
+                    {
+                        candidates.Add(new ChessSquare(index));
+                    }
+                }
+            }
+
+            return candidates;
+        }
 
         private List<ChessMove> GenerateCastling()
         {

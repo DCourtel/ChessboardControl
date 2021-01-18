@@ -44,7 +44,8 @@
         /// <summary>
         /// Gets or sets the type of the piece created during a pawn promotion.
         /// </summary>
-        public ChessPieceKind PromotedTo {
+        public ChessPieceKind PromotedTo
+        {
             get { return _promotedTo; }
             set
             {
@@ -61,7 +62,25 @@
                         throw new System.ArgumentOutOfRangeException("You cannot promote a Pawn to a Pawn or a King.");
                 }
             }
-        } 
+        }
+
+        private string _toSAN = null;
+        /// <summary>
+        /// Gets or sets the move expressed in the Standard Algebraic Notation (SAN).
+        /// </summary>
+        public string ToSAN
+        {
+            get
+            {
+                if (_toSAN == null)
+                {
+                    _toSAN = GetPartialSAN();
+                }
+                return _toSAN;
+            }
+
+            internal set { _toSAN = value; }
+        }
 
         /// <summary>
         /// Gets or sets the square where the piece move to.
@@ -80,16 +99,45 @@
             clone.To = this.To;
             clone.MovingPiece = this.MovingPiece;
 
-            return clone;            
+            return clone;
         }
 
         #endregion Properties
 
         #region Methods
 
+        private string GetPartialSAN()
+        {
+            if (MovingPiece.Kind == ChessPieceKind.Pawn)
+            {
+                if (CapturedPiece == ChessPieceKind.None)
+                {
+                    return To.AlgebraicNotation;
+                }
+                else
+                {
+                    if ((MoveKind & ChessMoveType.EP_Capture) == ChessMoveType.EP_Capture)
+                    {
+                        return $"{From.File}x{To.AlgebraicNotation} e.p.";
+                    }
+                    return $"{From.File}x{To.AlgebraicNotation}";
+                }
+            }
+            else
+            {
+                if (MoveKind == ChessMoveType.KSide_Castle) { return "O-O"; }
+                if (MoveKind == ChessMoveType.QSide_Castle) { return "O-O-O"; }
+                if ((MoveKind & ChessMoveType.Capture) == ChessMoveType.Capture)
+                {
+                    return $"{FEN.ChessPieceToFEN(MovingPiece).ToUpper()}x{To.AlgebraicNotation}";
+                }
+                return $"{FEN.ChessPieceToFEN(MovingPiece).ToUpper()}{To.AlgebraicNotation}";
+            }
+        }
+
         public override string ToString()
         {
-            return $"{MovingPiece.Kind} {From}{(CapturedPiece != ChessPieceKind.None ? "x" : " ")}{To} ({(IsValid ? "Legal" : "Illegal")}){(IsValid ? "" : $"({IllegalReason})")}";
+            return ToSAN;
         }
 
         #endregion Methods

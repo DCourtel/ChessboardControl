@@ -459,7 +459,10 @@ namespace ChessboardControl
         /// <returns>An instance of the last move or null if there is no moves in the MoveHistory.</returns>
         public ChessMove UndoMove()
         {
-            return ChessEngine.UndoMove();
+            var undoneMove = ChessEngine.UndoMove();
+            Invalidate();
+
+            return undoneMove;
         }
 
         #endregion Public Methods
@@ -673,8 +676,9 @@ namespace ChessboardControl
                         if (!promotionCancelled)
                         {
                             MovePiece(moveValidationResult);
+                            moveValidationResult.ToSAN = ChessEngine.MoveToSAN(moveValidationResult);   //  Update the SAN after promotion
 
-                            OnPieceMoved?.Invoke(this,                                moveValidationResult);
+                            OnPieceMoved?.Invoke(this, moveValidationResult);
                             if (ChessEngine.IsCheckmate)
                             { OnCheckmate?.Invoke(this, new EventArgs()); }
                             else if (ChessEngine.IsCheck)

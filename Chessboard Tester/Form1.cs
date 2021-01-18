@@ -40,7 +40,7 @@ namespace ChessboardTester
 
         private void chessboard1_OnPieceMoved(Chessboard sender, ChessMove move)
         {
-            LblLastMove.Text = $"Last move: {move.MovingPiece.Kind} from {move.From} to {move.To} {(move.CapturedPiece == ChessPieceKind.None ? "No capture" : $"{move.CapturedPiece} was captured")}";
+            LblLastMove.Text = $"Last move: {move.ToSAN}";
             LblGameStatus.Text = "Game status:";
         }
 
@@ -70,6 +70,11 @@ namespace ChessboardTester
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        private void BtnUndoMove_Click(object sender, EventArgs e)
+        {
+            chessboard1.UndoMove();
         }
 
         private void ChkBxFlipBoard_CheckedChanged(object sender, EventArgs e)
