@@ -48,6 +48,7 @@ namespace ChessboardTester
             this.chessboard1 = new ChessboardControl.Chessboard();
             this.LblGameStatus = new System.Windows.Forms.Label();
             this.BtnUndoMove = new System.Windows.Forms.Button();
+            this.ChkBxDisable = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // BtnClear
@@ -234,7 +235,7 @@ namespace ChessboardTester
             // BtnSaveToFile
             // 
             this.BtnSaveToFile.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.BtnSaveToFile.Location = new System.Drawing.Point(358, 360);
+            this.BtnSaveToFile.Location = new System.Drawing.Point(355, 381);
             this.BtnSaveToFile.Name = "BtnSaveToFile";
             this.BtnSaveToFile.Size = new System.Drawing.Size(75, 23);
             this.BtnSaveToFile.TabIndex = 15;
@@ -294,6 +295,18 @@ namespace ChessboardTester
             this.BtnUndoMove.UseVisualStyleBackColor = true;
             this.BtnUndoMove.Click += new System.EventHandler(this.BtnUndoMove_Click);
             // 
+            // ChkBxDisable
+            // 
+            this.ChkBxDisable.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.ChkBxDisable.AutoSize = true;
+            this.ChkBxDisable.Location = new System.Drawing.Point(358, 358);
+            this.ChkBxDisable.Name = "ChkBxDisable";
+            this.ChkBxDisable.Size = new System.Drawing.Size(61, 17);
+            this.ChkBxDisable.TabIndex = 14;
+            this.ChkBxDisable.Text = "Disable";
+            this.ChkBxDisable.UseVisualStyleBackColor = true;
+            this.ChkBxDisable.CheckedChanged += new System.EventHandler(this.ChkBxDisable_CheckedChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -303,6 +316,7 @@ namespace ChessboardTester
             this.Controls.Add(this.chessboard1);
             this.Controls.Add(this.ChkBxShowVisualHints);
             this.Controls.Add(this.BtnSaveToFile);
+            this.Controls.Add(this.ChkBxDisable);
             this.Controls.Add(this.ChkBxFlipBoard);
             this.Controls.Add(this.BtnUndoMove);
             this.Controls.Add(this.BtnMovePiece);
@@ -348,6 +362,7 @@ namespace ChessboardTester
         private ChessboardControl.Chessboard chessboard1;
         private System.Windows.Forms.Label LblGameStatus;
         private System.Windows.Forms.Button BtnUndoMove;
+        private System.Windows.Forms.CheckBox ChkBxDisable;
     }
 }
 

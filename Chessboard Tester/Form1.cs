@@ -119,5 +119,10 @@ namespace ChessboardTester
         {
             LblGameStatus.Text = "Game status: Draw";
         }
+
+        private void ChkBxDisable_CheckedChanged(object sender, EventArgs e)
+        {
+            chessboard1.Enabled = !ChkBxDisable.Checked;
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 
 namespace ChessboardControl
 {
@@ -380,6 +381,7 @@ namespace ChessboardControl
         public void LoadFEN(string fen)
         {
             ChessEngine.LoadFEN(fen);
+            Invalidate();
         }
 
         /// <summary>
@@ -501,82 +503,86 @@ namespace ChessboardControl
 
         protected override void OnPaint(PaintEventArgs pe)
         {
-            var g = pe.Graphics;
-            var coordinateAreaBrush = new Pen(CoordinateAreaBackColor).Brush;
-            var darkSquaresBrush = new Pen(DarkSquaresColor).Brush;
-            var lightSquaresBrush = new Pen(LightSquaresColor).Brush;
-
-            //  Draw a filled rectangle for digits
-            g.FillRectangle(coordinateAreaBrush, 0, 0, DigitAreaWidth, this.Height);
-
-            //  Draw a filled rectangle for letters
-            g.FillRectangle(coordinateAreaBrush, 0, this.Height - LetterAreaHeight, this.Width, LetterAreaHeight);
-
-            //  Draw letters
-            var coordinateFont = new Font(FontFamily.GenericMonospace, 11 + (SquareWidth - MINIMUM_SQUARE_WIDTH) / 4);
-            for (int i = 0; i < 8; i++)
+            var controlImage = new Bitmap(this.Width, this.Height);
+            using (Graphics g = Graphics.FromImage(controlImage))
             {
-                var letter = (BoardDirection == BoardDirection.BlackOnTop ?
-                    ((ChessFile)i).ToString() :
-                     ((ChessFile)7 - i).ToString());
-                var characterSize = g.MeasureString(letter, coordinateFont);
-                var x = DigitAreaWidth + i * SquareWidth + (SquareWidth - characterSize.Width) / 2;
-                var y = this.Height - LetterAreaHeight + (LetterAreaHeight - characterSize.Height) / 2;
-                g.DrawString(letter, coordinateFont, DEFAULT_COORDINATE_FORGROUND_BRUSH, x, y);
-            }
+                var coordinateAreaBrush = new Pen(CoordinateAreaBackColor).Brush;
+                var darkSquaresBrush = new Pen(DarkSquaresColor).Brush;
+                var lightSquaresBrush = new Pen(LightSquaresColor).Brush;
 
-            //  Draw digits
-            coordinateFont = new Font(FontFamily.GenericMonospace, 11 + (SquareHeight - MINIMUM_SQUARE_HEGHT) / 4);
-            for (int i = 0; i < 8; i++)
-            {
-                var digit = (BoardDirection == BoardDirection.BlackOnTop ?
-                    (8 - i).ToString() :
-                    (i + 1).ToString());
-                var characterSize = g.MeasureString(digit, coordinateFont);
-                var x = (DigitAreaWidth - characterSize.Width) / 2;
-                var y = i * SquareHeight + (SquareHeight - characterSize.Height) / 2;
-                g.DrawString(digit, coordinateFont, DEFAULT_COORDINATE_FORGROUND_BRUSH, x, y);
-            }
+                //  Draw a filled rectangle for digits
+                g.FillRectangle(coordinateAreaBrush, 0, 0, DigitAreaWidth, this.Height);
 
-            //  Draw Turn indicator
-            var turnIndicatorBorder = new Rectangle(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
-            var turnIndicatorSquare = new RectangleF(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
-            g.FillRectangle(ChessEngine.Turn == ChessColor.White ? lightSquaresBrush : darkSquaresBrush, turnIndicatorSquare);
-            g.DrawRectangle(new Pen(Color.Black), turnIndicatorBorder);
+                //  Draw a filled rectangle for letters
+                g.FillRectangle(coordinateAreaBrush, 0, this.Height - LetterAreaHeight, this.Width, LetterAreaHeight);
 
-            //  Draw cells
-            bool isLightSquare = true;
-            for (int x = 0; x < 8; x++)
-            {
-                for (int y = 0; y < 8; y++)
+                //  Draw letters
+                var coordinateFont = new Font(FontFamily.GenericMonospace, 11 + (SquareWidth - MINIMUM_SQUARE_WIDTH) / 4);
+                for (int i = 0; i < 8; i++)
                 {
-                    var square = new RectangleF(DigitAreaWidth + x * SquareWidth, y * SquareHeight, SquareWidth, SquareHeight);
-                    g.FillRectangle(isLightSquare ? lightSquaresBrush : darkSquaresBrush, square);
-                    ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ?
-                        new ChessSquare((ChessFile)x, (ChessRank)7 - y) :
-                        new ChessSquare((ChessFile)7 - x, (ChessRank)y);
-                    if (!currentSquare.Equals(DragDropOperation.Origin))
-                    {
-                        ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
-                        if (currentPiece != null)
-                        {
-                            g.DrawImage(GetPieceImage(currentPiece), square);
-                        }
-                    }
+                    var letter = (BoardDirection == BoardDirection.BlackOnTop ?
+                        ((ChessFile)i).ToString() :
+                         ((ChessFile)7 - i).ToString());
+                    var characterSize = g.MeasureString(letter, coordinateFont);
+                    var x = DigitAreaWidth + i * SquareWidth + (SquareWidth - characterSize.Width) / 2;
+                    var y = this.Height - LetterAreaHeight + (LetterAreaHeight - characterSize.Height) / 2;
+                    g.DrawString(letter, coordinateFont, DEFAULT_COORDINATE_FORGROUND_BRUSH, x, y);
+                }
 
+                //  Draw digits
+                coordinateFont = new Font(FontFamily.GenericMonospace, 11 + (SquareHeight - MINIMUM_SQUARE_HEGHT) / 4);
+                for (int i = 0; i < 8; i++)
+                {
+                    var digit = (BoardDirection == BoardDirection.BlackOnTop ?
+                        (8 - i).ToString() :
+                        (i + 1).ToString());
+                    var characterSize = g.MeasureString(digit, coordinateFont);
+                    var x = (DigitAreaWidth - characterSize.Width) / 2;
+                    var y = i * SquareHeight + (SquareHeight - characterSize.Height) / 2;
+                    g.DrawString(digit, coordinateFont, DEFAULT_COORDINATE_FORGROUND_BRUSH, x, y);
+                }
+
+                //  Draw Turn indicator
+                var turnIndicatorBorder = new Rectangle(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
+                var turnIndicatorSquare = new RectangleF(0, Height - LetterAreaHeight, DigitAreaWidth, LetterAreaHeight);
+                g.FillRectangle(ChessEngine.Turn == ChessColor.White ? lightSquaresBrush : darkSquaresBrush, turnIndicatorSquare);
+                g.DrawRectangle(new Pen(Color.Black), turnIndicatorBorder);
+
+                //  Draw cells
+                bool isLightSquare = true;
+                for (int x = 0; x < 8; x++)
+                {
+                    for (int y = 0; y < 8; y++)
+                    {
+                        var square = new RectangleF(DigitAreaWidth + x * SquareWidth, y * SquareHeight, SquareWidth, SquareHeight);
+                        g.FillRectangle(isLightSquare ? lightSquaresBrush : darkSquaresBrush, square);
+                        ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ?
+                            new ChessSquare((ChessFile)x, (ChessRank)7 - y) :
+                            new ChessSquare((ChessFile)7 - x, (ChessRank)y);
+                        if (!currentSquare.Equals(DragDropOperation.Origin))
+                        {
+                            ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
+                            if (currentPiece != null)
+                            {
+                                g.DrawImage(GetPieceImage(currentPiece), square);
+                            }
+                        }
+
+                        isLightSquare = !isLightSquare;
+                    }
                     isLightSquare = !isLightSquare;
                 }
-                isLightSquare = !isLightSquare;
+
+                //  Draw visual hints
+                DrawVisualHints(g);
+
+                //  Draw borders
+                var borders = new Rectangle(0, 0, Width - 1, Height - 1);
+                g.DrawRectangle(new Pen(Color.Black), borders);
+                g.Flush();
             }
 
-            //  Draw visual hints
-            DrawVisualHints(g);
-
-            //  Draw borders
-            var borders = new Rectangle(0, 0, Width - 1, Height - 1);
-            g.DrawRectangle(new Pen(Color.Black), borders);
-
-            g.Flush();
+            pe.Graphics.DrawImage(this.Enabled ? controlImage : GrayOutImage(controlImage), new Point(0, 0));
         }
 
         private void DrawVisualHints(Graphics g)
@@ -597,6 +603,37 @@ namespace ChessboardControl
         private RectangleF GetHintRectangle(int x, int y)
         {
             return new RectangleF(DigitAreaWidth + x * SquareWidth + SquareWidth / 4, y * SquareHeight + SquareHeight / 4, SquareWidth / 2f, SquareHeight / 2f);
+        }
+
+        /// <summary>
+        /// Grayout the given image.
+        /// </summary>
+        /// <param name="originalImage"></param>
+        /// <returns></returns>
+        private Bitmap GrayOutImage(Bitmap originalImage)
+        {
+            Bitmap grayoutImage = new Bitmap(originalImage.Width, originalImage.Height);
+
+            using (Graphics g = Graphics.FromImage(grayoutImage))
+            {
+                ColorMatrix colorMatrix = new ColorMatrix(
+                   new float[][]
+                   {
+                     new float[] {.3f, .3f, .3f, 0, 0},
+                     new float[] {.59f, .59f, .59f, 0, 0},
+                     new float[] {.11f, .11f, .11f, 0, 0},
+                     new float[] {0, 0, 0, 1, 0},
+                     new float[] {0, 0, 0, 0, 1}
+                   });
+
+                using (ImageAttributes attributes = new ImageAttributes())
+                {
+                    attributes.SetColorMatrix(colorMatrix);
+                    g.DrawImage(originalImage, new Rectangle(0, 0, originalImage.Width, originalImage.Height),
+                                0, 0, originalImage.Width, originalImage.Height, GraphicsUnit.Pixel, attributes);
+                }
+            }
+            return grayoutImage;
         }
 
         #endregion Private Methods
