@@ -2,7 +2,7 @@
 
 namespace ChessboardControl
 {
-    public class ChessPiece:IEquatable<ChessPiece>
+    public class ChessPiece
     {
         public ChessPiece(ChessPieceKind kind, ChessColor color)
         {
@@ -14,11 +14,18 @@ namespace ChessboardControl
 
         public ChessColor Color { get; set; }
 
-        public bool Equals(ChessPiece other)
+        public static bool operator== (ChessPiece first, ChessPiece second)
         {
-            if(other == null) { return false; }
+            if (ReferenceEquals(first, second)) { return true; }
+            if (first is null && second is null) { return true; }
+            if (first is null || second is null) { return false; }
 
-            return this.Kind == other.Kind && this.Color == other.Color;
+            return first.Kind == second.Kind && first.Color == second.Color;
+        }
+
+        public static bool operator!= (ChessPiece first, ChessPiece second)
+        {
+            return !(first == second);
         }
 
         public override string ToString()

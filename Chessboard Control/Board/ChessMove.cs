@@ -87,6 +87,10 @@
         /// </summary>
         public ChessSquare To { get; internal set; }
 
+        #endregion Properties
+
+        #region Methods
+
         /// <summary>
         /// Creates a clone of this instance.
         /// </summary>
@@ -101,10 +105,6 @@
 
             return clone;
         }
-
-        #endregion Properties
-
-        #region Methods
 
         private string GetPartialSAN()
         {
@@ -133,6 +133,23 @@
                 }
                 return $"{FEN.ChessPieceToFEN(MovingPiece).ToUpper()}{To.AlgebraicNotation}";
             }
+        }
+
+        public static bool operator ==(ChessMove first, ChessMove second)
+        {
+            if (ReferenceEquals(first, second)) { return true; }
+            if (first is null && second is null) { return true; }
+            if (first is null || second is null) { return false; }
+
+            return first.From == second.From &&
+                    first.To == second.To &&
+                    first.CapturedPiece == second.CapturedPiece &&
+                    first.PromotedTo == second.PromotedTo;
+        }
+
+        public static bool operator !=(ChessMove first, ChessMove second)
+        {
+            return !(first == second);
         }
 
         public override string ToString()

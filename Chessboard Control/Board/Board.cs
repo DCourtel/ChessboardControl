@@ -540,7 +540,7 @@ namespace ChessboardControl
             }
 
             //  Checks if from == to
-            if (from.Equals(to))
+            if (from == to)
             {
                 validationResult.IllegalReason = ChessMoveRejectedReason.DestinationSquareEqualsSourceSquare;
                 return validationResult;

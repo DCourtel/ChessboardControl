@@ -488,7 +488,7 @@ namespace ChessboardControl
             var currentPiece = GetPieceAt(targetedSquare);
             if (currentPiece != null)
             {
-                if (DragDropOperation.Origin == null || !DragDropOperation.Origin.Equals(targetedSquare))
+                if (DragDropOperation.Origin == null || DragDropOperation.Origin !=targetedSquare)
                 {
                     g.DrawImage(GetPieceImage(currentPiece), square);
                 }
@@ -559,7 +559,7 @@ namespace ChessboardControl
                         ChessSquare currentSquare = BoardDirection == BoardDirection.BlackOnTop ?
                             new ChessSquare((ChessFile)x, (ChessRank)7 - y) :
                             new ChessSquare((ChessFile)7 - x, (ChessRank)y);
-                        if (!currentSquare.Equals(DragDropOperation.Origin))
+                        if (currentSquare != DragDropOperation.Origin)
                         {
                             ChessPiece currentPiece = ChessEngine.GetPieceAt(currentSquare);
                             if (currentPiece != null)
@@ -676,9 +676,14 @@ namespace ChessboardControl
                     new ChessSquare((ChessFile)((e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(7 - (e.Y / SquareHeight))) :
                     new ChessSquare((ChessFile)(7 - (e.X - DigitAreaWidth) / SquareWidth), (ChessRank)(e.Y / SquareHeight)));
                 var selectedPiece = GetPieceAt(origin);
-
+                
                 if (selectedPiece != null)
                 {
+                    if (selectedPiece.Color != Turn)
+                    {
+                        Cursor = Cursors.No;
+                        return;
+                    }
                     var resizedBitmap = new Bitmap(GetPieceImage(selectedPiece), new Size(SquareWidth, SquareHeight));
                     Cursor = new Cursor(resizedBitmap.GetHicon());
                     DragDropOperation = new DragOperation(selectedPiece, origin);

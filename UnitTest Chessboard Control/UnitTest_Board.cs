@@ -153,22 +153,22 @@ namespace UnitTest_Chessboard_Control
             SUT board = new SUT();
 
             //	Assert
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("a1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("b1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("c1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Queen, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("d1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.King, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("e1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("f1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("g1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.White).Equals(board.GetPieceAt(new ChessSquare("h1"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("a8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("b8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("c8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Queen, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("d8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.King, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("e8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("f8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("g8"))));
-            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black).Equals(board.GetPieceAt(new ChessSquare("h8"))));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.White) == board.GetPieceAt(new ChessSquare("a1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.White) == board.GetPieceAt(new ChessSquare("b1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.White) == board.GetPieceAt(new ChessSquare("c1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Queen, ChessColor.White) == board.GetPieceAt(new ChessSquare("d1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.King, ChessColor.White) == board.GetPieceAt(new ChessSquare("e1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.White) == board.GetPieceAt(new ChessSquare("f1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.White) == board.GetPieceAt(new ChessSquare("g1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.White) == board.GetPieceAt(new ChessSquare("h1")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black) == board.GetPieceAt(new ChessSquare("a8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.Black) == board.GetPieceAt(new ChessSquare("b8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.Black) == board.GetPieceAt(new ChessSquare("c8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Queen, ChessColor.Black) == board.GetPieceAt(new ChessSquare("d8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.King, ChessColor.Black) == board.GetPieceAt(new ChessSquare("e8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Bishop, ChessColor.Black) == board.GetPieceAt(new ChessSquare("f8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Knight, ChessColor.Black) == board.GetPieceAt(new ChessSquare("g8")));
+            Assert.IsTrue(new ChessPiece(ChessPieceKind.Rook, ChessColor.Black) == board.GetPieceAt(new ChessSquare("h8")));
         }
 
         [TestMethod]
@@ -195,7 +195,7 @@ namespace UnitTest_Chessboard_Control
             board.PutPiece(piece, new ChessSquare(square));
 
             //	Assert
-            Assert.IsTrue(piece.Equals(board.GetPieceAt(new ChessSquare(square))));
+            Assert.IsTrue(piece == board.GetPieceAt(new ChessSquare(square)));
         }
 
         [TestMethod]
@@ -470,8 +470,8 @@ namespace UnitTest_Chessboard_Control
             for (int i = 0; i < moveHistory.Length; i++)
             {
                 Assert.AreEqual(moveHistory[i].CapturedPiece, playedMoves[i].CapturedPiece);
-                Assert.IsTrue(moveHistory[i].From.Equals(playedMoves[i].From));
-                Assert.IsTrue(moveHistory[i].To.Equals(playedMoves[i].To));
+                Assert.IsTrue(moveHistory[i].From == playedMoves[i].From);
+                Assert.IsTrue(moveHistory[i].To == playedMoves[i].To);
                 Assert.AreEqual(moveHistory[i].IsValid, playedMoves[i].IsValid);
                 Assert.AreEqual(moveHistory[i].MoveKind, playedMoves[i].MoveKind);
                 Assert.AreEqual(moveHistory[i].MovingPiece.Kind, playedMoves[i].MovingPiece.Kind);

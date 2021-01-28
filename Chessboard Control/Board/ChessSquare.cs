@@ -2,7 +2,7 @@
 
 namespace ChessboardControl
 {
-    public class ChessSquare : IEquatable<ChessSquare>
+    public class ChessSquare
     {
         /// <summary>
         /// Returns an instance of this class initialized with the coordinates of the square.
@@ -151,11 +151,18 @@ namespace ChessboardControl
             return AlgebraicNotation;
         }
 
-        public bool Equals(ChessSquare other)
+        public static bool operator ==(ChessSquare first, ChessSquare second)
         {
-            if (other == null) { return false; }
+            if (ReferenceEquals(first, second)) { return true; }
+            if (first is null && second is null) { return true; }
+            if (first is null || second is null) { return false; }
 
-            return this.File == other.File && this.Rank == other.Rank;
+            return first.File == second.File && first.Rank == second.Rank;
+        }
+
+        public static bool operator !=(ChessSquare first, ChessSquare second)
+        {
+            return !(first == second);
         }
     }
 }
