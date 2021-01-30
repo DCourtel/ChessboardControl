@@ -5,6 +5,7 @@ A .Net control to display a chessboard.
 
 The control displays a set of chess pieces and allows to move these pieces in respect of chess rules. It can show available moves once a piece has been selected. Take a look at the «Chessboard Tester» project to have an idea of how to use the control.
 
+* 01/30/21: Fixed the Clone method of the ChessMove class and added JSON serialization properties.
 * 01/28/21: Implement == and != operators. Prevents from picking a piece of the opposite color than the side whose is the turn.
 * 01/27/21: Gray out and disable the control when the Enabled property is set to false.
 * 01/18/21: Added a method to convert a ChessMove into its Standard Algebraic Notation (SAN), added a button onto Chessboard Tester to undo moves.
