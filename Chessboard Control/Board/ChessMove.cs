@@ -1,6 +1,8 @@
-﻿namespace ChessboardControl
+﻿using System;
+
+namespace ChessboardControl
 {
-    public class ChessMove
+    public class ChessMove:IEquatable<ChessMove>
     {
         internal ChessMove(ChessSquare from, ChessSquare to)
         {
@@ -99,9 +101,9 @@
         {
             ChessMove clone = (ChessMove)this.MemberwiseClone();
 
-            clone.From = this.From;
-            clone.To = this.To;
-            clone.MovingPiece = this.MovingPiece;
+            clone.From = this.From.Clone();
+            clone.To = this.To.Clone();
+            clone.MovingPiece = this.MovingPiece.Clone();
 
             return clone;
         }
@@ -150,6 +152,25 @@
         public static bool operator !=(ChessMove first, ChessMove second)
         {
             return !(first == second);
+        }
+
+        public bool Equals(ChessMove other)
+        {
+            return Equals((object)other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) { return false; }
+            if (!(obj is ChessMove)) { return false; }
+            if (ReferenceEquals(this, obj)) { return true; }
+
+            return this == (ChessMove)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return $"{From}{To}{CapturedPiece}{IllegalReason}{IsValid}{MoveKind}{MovingPiece}{PromotedTo}".GetHashCode();
         }
 
         public override string ToString()

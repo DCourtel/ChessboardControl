@@ -1,9 +1,11 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace ChessboardControl
 {
-    public class ChessSquare
+    public class ChessSquare:IEquatable<ChessSquare>
     {
+        [JsonConstructor]
         /// <summary>
         /// Returns an instance of this class initialized with the coordinates of the square.
         /// </summary>
@@ -102,6 +104,7 @@ namespace ChessboardControl
 
         #region Properties
 
+        [JsonIgnore]
         /// <summary>
         /// Gets the coordinate of the square in Algebraic notation (ex: e4)
         /// </summary>
@@ -113,6 +116,7 @@ namespace ChessboardControl
             }
         }
 
+        [JsonIgnore]
         /// <summary>
         /// Gets the color of the square.
         /// </summary>
@@ -124,10 +128,13 @@ namespace ChessboardControl
             }
         }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public ChessFile File { get; set; }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public ChessRank Rank { get; set; }
 
+        [JsonIgnore]
         /// <summary>
         /// Gets the coordinate of the square in 0x88 notation.
         /// </summary>
@@ -140,6 +147,15 @@ namespace ChessboardControl
         }
 
         #endregion Properties
+
+        #region Methods
+
+        public ChessSquare Clone()
+        {
+            ChessSquare clone = (ChessSquare)this.MemberwiseClone();
+
+            return clone;
+        }
 
         internal static string GetAlgebraicNotation(int x88)
         {
@@ -164,5 +180,26 @@ namespace ChessboardControl
         {
             return !(first == second);
         }
+
+        public bool Equals(ChessSquare other)
+        {
+            return Equals((object)other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) { return false; }
+            if (!(obj is ChessSquare)) { return false; }
+            if (ReferenceEquals(this, obj)) { return true; }
+
+            return this == (ChessSquare)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return $"{Color}{File}{Rank}".GetHashCode();
+        }
+        
+        #endregion Methods
     }
 }
