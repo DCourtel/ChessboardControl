@@ -124,5 +124,19 @@ namespace ChessboardTester
         {
             chessboard1.Enabled = !ChkBxDisable.Checked;
         }
+
+        private void BtnLoadFEN_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var FrmFENString = new FrmGetFEN();
+                if (FrmFENString.ShowDialog()== DialogResult.OK)
+                { chessboard1.LoadFEN(FrmFENString.FENString); }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
     }
 }

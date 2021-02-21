@@ -717,8 +717,8 @@ namespace ChessboardControl
                         }
                         if (!promotionCancelled)
                         {
-                            MovePiece(moveValidationResult);
                             moveValidationResult.ToSAN = ChessEngine.MoveToSAN(moveValidationResult);   //  Update the SAN after promotion
+                            MovePiece(moveValidationResult);
 
                             OnPieceMoved?.Invoke(this, moveValidationResult);
                             if (ChessEngine.IsCheckmate)

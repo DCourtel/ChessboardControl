@@ -49,6 +49,7 @@ namespace ChessboardTester
             this.LblGameStatus = new System.Windows.Forms.Label();
             this.BtnUndoMove = new System.Windows.Forms.Button();
             this.ChkBxDisable = new System.Windows.Forms.CheckBox();
+            this.BtnLoadFEN = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // BtnClear
@@ -307,11 +308,23 @@ namespace ChessboardTester
             this.ChkBxDisable.UseVisualStyleBackColor = true;
             this.ChkBxDisable.CheckedChanged += new System.EventHandler(this.ChkBxDisable_CheckedChanged);
             // 
+            // BtnLoadFEN
+            // 
+            this.BtnLoadFEN.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.BtnLoadFEN.Location = new System.Drawing.Point(355, 410);
+            this.BtnLoadFEN.Name = "BtnLoadFEN";
+            this.BtnLoadFEN.Size = new System.Drawing.Size(75, 23);
+            this.BtnLoadFEN.TabIndex = 20;
+            this.BtnLoadFEN.Text = "Load FEN…";
+            this.BtnLoadFEN.UseVisualStyleBackColor = true;
+            this.BtnLoadFEN.Click += new System.EventHandler(this.BtnLoadFEN_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(442, 462);
+            this.Controls.Add(this.BtnLoadFEN);
             this.Controls.Add(this.LblGameStatus);
             this.Controls.Add(this.chessboard1);
             this.Controls.Add(this.ChkBxShowVisualHints);
@@ -363,6 +376,7 @@ namespace ChessboardTester
         private System.Windows.Forms.Label LblGameStatus;
         private System.Windows.Forms.Button BtnUndoMove;
         private System.Windows.Forms.CheckBox ChkBxDisable;
+        private System.Windows.Forms.Button BtnLoadFEN;
     }
 }
 

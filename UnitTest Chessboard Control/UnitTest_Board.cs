@@ -127,7 +127,7 @@ namespace UnitTest_Chessboard_Control
             SUT board = new SUT();
 
             //	Act            
-            board.Move(new ChessSquare("e2"),null);
+            board.Move(new ChessSquare("e2"), null);
         }
 
         [TestMethod]
@@ -326,6 +326,30 @@ namespace UnitTest_Chessboard_Control
                 " 1 | .  .  .  .  .  .  .  . |\n" +
                 "   +------------------------+\n" +
                 "     a  b  c  d  e  f  g  h\n", actual);
+        }
+
+        [TestMethod]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "c4", "Qa4xc4")]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a6", "c4", "Qa6xc4")]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c6", "c4", "Qc6xc4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "d4", "Qaxd4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c5", "d4", "Qcxd4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "d6", "d4", "Qdxd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b5", "d4", "Nb5xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b3", "d4", "Nb3xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f5", "d4", "Nf5xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f3", "d4", "Nf3xd4")]
+        public void GetDisambiguator_Should_ReturnCorrectValue(string FENPosition, string from, string to, string expectedSAN)
+        {
+            //	Arrange
+            SUT board = new SUT(FENPosition);
+            ChessMove actualMove;
+
+            //	Act
+            actualMove = board.GetMoveValidity(new ChessSquare(from), new ChessSquare(to));
+
+            //	Assert
+            Assert.AreEqual(expectedSAN, actualMove.ToSAN);
         }
 
         [TestMethod]

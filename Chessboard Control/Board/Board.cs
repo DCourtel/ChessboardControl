@@ -750,6 +750,7 @@ namespace ChessboardControl
                 {
                     validationResult.IsValid = true;
                     validationResult.IllegalReason = ChessMoveRejectedReason.None;
+                    validationResult.ToSAN = MoveToSAN(validationResult);
                 }
             }
             else
@@ -844,7 +845,7 @@ namespace ChessboardControl
         public void Move(ChessSquare from, ChessSquare to, ChessPieceKind promotedTo = ChessPieceKind.Queen)
         {
             var moveValidation = GetMoveValidity(from, to);
-            moveValidation.PromotedTo = promotedTo;
+            if (moveValidation.MoveKind.HasFlag(ChessMoveType.Promotion)) { moveValidation.PromotedTo = promotedTo; }
 
             Move(moveValidation);
         }
@@ -971,7 +972,7 @@ namespace ChessboardControl
             board[move.From.x88Notation].Kind = move.MovingPiece.Kind; // to undo any promotions
             board[move.To.x88Notation] = null;
 
-            if ((move.MoveKind & ChessMoveType.Capture) != 0)
+            if (move.MoveKind.HasFlag(ChessMoveType.Capture))
             {
                 board[move.To.x88Notation] = new ChessPiece(move.CapturedPiece, them);
             }
@@ -1038,12 +1039,12 @@ namespace ChessboardControl
             {
                 var promotion = "";
                 //  Promotion without capture
-                if ((move.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion) { promotion = $"={FEN.ChessPieceKindToFEN(move.PromotedTo).ToUpper()}"; }
-                if (move.MoveKind == ChessMoveType.Promotion) { return $"{move.To.AlgebraicNotation}{promotion}{kingStatus}"; }
+                if (move.MoveKind.HasFlag(ChessMoveType.Promotion)) { promotion = $"={FEN.ChessPieceKindToFEN(move.PromotedTo).ToUpper()}"; }
+                if (move.MoveKind.HasFlag(ChessMoveType.Promotion)) { return $"{move.To.AlgebraicNotation}{promotion}{kingStatus}"; }
                 //  Move without capturing
                 if (move.MoveKind == ChessMoveType.Normal || move.MoveKind == ChessMoveType.Big_Pawn) { return $"{move.To.AlgebraicNotation}{kingStatus}"; }
                 //  Capture
-                if ((move.MoveKind & ChessMoveType.EP_Capture) == ChessMoveType.EP_Capture) { return $"{move.From.File}x{move.To.AlgebraicNotation} e.p.{kingStatus}"; }
+                if (move.MoveKind.HasFlag(ChessMoveType.EP_Capture)) { return $"{move.From.File}x{move.To.AlgebraicNotation} e.p.{kingStatus}"; }
                 return $"{move.From.File}x{move.To.AlgebraicNotation}{promotion}{kingStatus}";
             }
 
@@ -1070,9 +1071,9 @@ namespace ChessboardControl
         {
             Dictionary<ChessFile, int> matchingFiles = new Dictionary<ChessFile, int>();
             Dictionary<ChessRank, int> matchingRanks = new Dictionary<ChessRank, int>();
-            List<ChessSquare> candidateSquares = GetAllPieces(move.MovingPiece.Kind, Turn, move);
+            List<ChessSquare> candidateSquares = GetAllAttackingPieces(move.MovingPiece.Kind, Turn, move.To.x88Notation);
 
-            if (candidateSquares.Count < 2) { return string.Empty; }
+            if (candidateSquares.Count < 1) { return string.Empty; }
 
             foreach (ChessSquare square in candidateSquares)
             {
@@ -1095,7 +1096,7 @@ namespace ChessboardControl
             return move.From.File.ToString();
         }
 
-        private List<ChessSquare> GetAllPieces(ChessPieceKind pieceKind, ChessColor color, ChessMove move)
+        private List<ChessSquare> GetAllAttackingPieces(ChessPieceKind pieceKind, ChessColor color, int to)
         {
             List<ChessSquare> candidates = new List<ChessSquare>();
 
@@ -1105,7 +1106,7 @@ namespace ChessboardControl
                 {
                     var index = 16 * rank + file;
                     var piece = board[index];
-                    if (piece != null && piece.Kind == pieceKind && piece.Color == color && PieceCanAttack(index, move.To.x88Notation))
+                    if (piece != null && piece.Kind == pieceKind && piece.Color == color && PieceCanAttack(index, to))
                     {
                         candidates.Add(new ChessSquare(index));
                     }
@@ -1312,7 +1313,7 @@ namespace ChessboardControl
 
         private void MovePiece(ChessMove move)
         {
-            if ((move.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion && move.PromotedTo == ChessPieceKind.None) { move.PromotedTo = ChessPieceKind.Queen; }
+            if (move.MoveKind.HasFlag(ChessMoveType.Promotion) && move.PromotedTo == ChessPieceKind.None) { move.PromotedTo = ChessPieceKind.Queen; }
             ChessColor us = Turn;
             ChessColor them = SwapColor(us);
             PushToMoveHistory(move);
@@ -1334,7 +1335,7 @@ namespace ChessboardControl
             }
 
             /* if pawn promotion, replace with new piece */
-            if ((move.MoveKind & ChessMoveType.Promotion) != 0)
+            if (move.MoveKind.HasFlag(ChessMoveType.Promotion))
             {
                 board[move.To.x88Notation] = new ChessPiece(move.PromotedTo, us);
             }
@@ -1344,14 +1345,14 @@ namespace ChessboardControl
             {
                 kings[board[move.To.x88Notation].Color] = move.To.x88Notation;
                 /* if we castled, move the rook next to the king */
-                if ((move.MoveKind & ChessMoveType.KSide_Castle) != 0)
+                if (move.MoveKind.HasFlag(ChessMoveType.KSide_Castle))
                 {
                     int castling_to = move.To.x88Notation - 1;
                     int castling_from = move.To.x88Notation + 1;
                     board[castling_to] = board[castling_from];
                     board[castling_from] = null;
                 }
-                else if ((move.MoveKind & ChessMoveType.QSide_Castle) != 0)
+                else if (move.MoveKind.HasFlag(ChessMoveType.QSide_Castle))
                 {
                     int castling_to = move.To.x88Notation + 1;
                     int castling_from = move.To.x88Notation - 2;
@@ -1390,7 +1391,7 @@ namespace ChessboardControl
             }
 
             /* if big pawn move, update the en passant square */
-            if ((move.MoveKind & ChessMoveType.Big_Pawn) != 0)
+            if (move.MoveKind.HasFlag(ChessMoveType.Big_Pawn))
             {
                 if (Turn == ChessColor.Black)
                 {
@@ -1476,7 +1477,7 @@ namespace ChessboardControl
         {
             BoardState historyMove = new BoardState()
             {
-                Move = move,
+                Move = move.Clone(),
                 Kings = new Dictionary<ChessColor, int>() { { ChessColor.Black, kings[ChessColor.Black] }, { ChessColor.White, kings[ChessColor.White] } },
                 Turn = Turn,
                 Castling = new Dictionary<ChessColor, ChessCastling>() { { ChessColor.Black, castling[ChessColor.Black] }, { ChessColor.White, castling[ChessColor.White] } },
