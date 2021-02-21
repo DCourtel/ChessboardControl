@@ -750,7 +750,6 @@ namespace ChessboardControl
                 {
                     validationResult.IsValid = true;
                     validationResult.IllegalReason = ChessMoveRejectedReason.None;
-                    validationResult.ToSAN = MoveToSAN(validationResult);
                 }
             }
             else
