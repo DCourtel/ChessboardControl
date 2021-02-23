@@ -61,7 +61,7 @@ namespace ChessboardControl
                     this.File = ChessFile.h;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"{letter} is not in [a…h]");
+                    throw new ArgumentOutOfRangeException($"{letter} is not in [a…h] range.");
             }
             if (!char.IsDigit(digit)) { throw new ArgumentOutOfRangeException($"{digit} is not a digit"); }
 
@@ -92,7 +92,7 @@ namespace ChessboardControl
                     this.Rank = ChessRank._8;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"{digit} is not in [1…8]");
+                    throw new ArgumentOutOfRangeException($"{digit} is not in [1…8] range.");
             }
         }
 

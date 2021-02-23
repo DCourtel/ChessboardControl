@@ -339,6 +339,7 @@ namespace UnitTest_Chessboard_Control
         [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b3", "d4", "Nb3xd4")]
         [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f5", "d4", "Nf5xd4")]
         [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f3", "d4", "Nf3xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g1", "f3", "Nf3")]
         public void GetDisambiguator_Should_ReturnCorrectValue(string FENPosition, string from, string to, string expectedSAN)
         {
             //	Arrange
@@ -346,7 +347,7 @@ namespace UnitTest_Chessboard_Control
             ChessMove actualMove;
 
             //	Act
-            actualMove = board.GetMoveValidity(new ChessSquare(from), new ChessSquare(to));
+            actualMove = board.GetMoveValidity(new ChessSquare(from), new ChessSquare(to));            
 
             //	Assert
             Assert.AreEqual(expectedSAN, actualMove.ToSAN);

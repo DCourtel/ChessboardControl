@@ -709,10 +709,10 @@ namespace ChessboardControl
                     if (moveValidationResult.IsValid)
                     {
                         var promotionCancelled = false;
-                        if ((moveValidationResult.MoveKind & ChessMoveType.Promotion) == ChessMoveType.Promotion)
+                        if (moveValidationResult.MoveKind.HasFlag(ChessMoveType.Promotion))
                         {
                             var pieceChooser = new FrmPromotion(ChessEngine.Turn);
-                            promotionCancelled = (pieceChooser.ShowDialog() != DialogResult.OK);
+                            promotionCancelled = pieceChooser.ShowDialog() != DialogResult.OK;
                             moveValidationResult.PromotedTo = pieceChooser.ChoosePiece;
                         }
                         if (!promotionCancelled)
