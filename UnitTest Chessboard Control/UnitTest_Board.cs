@@ -467,7 +467,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void GetMoveHistory_Should_Retun_AllTheMoves()
+        public void GetMoveHistory_Should_Return_AllTheMoves()
         {
             //	Arrange
             SUT board = new SUT();
@@ -503,6 +503,23 @@ namespace UnitTest_Chessboard_Control
                 Assert.AreEqual(moveHistory[i].PromotedTo, playedMoves[i].PromotedTo);
                 Assert.AreEqual(moveHistory[i].IllegalReason, playedMoves[i].IllegalReason);
             }
+        }
+
+        [TestMethod]
+        public void GetMoveValidity_Should_Not_ThrowAnException_When_MoveIsInvalid()
+        {
+            //	Arrange
+            var superBoard = new Board();
+            ChessMove actualResult;
+
+            //	Act
+            superBoard.Reset();
+            actualResult = superBoard.GetMoveValidity(
+                new ChessSquare(ChessFile.e, ChessRank._2),
+                new ChessSquare(ChessFile.e, ChessRank._5));
+
+            //	Assert
+            Assert.IsFalse(actualResult.IsValid);
         }
 
         [TestMethod]

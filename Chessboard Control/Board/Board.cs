@@ -517,7 +517,10 @@ namespace ChessboardControl
         public ChessMove GetMoveValidity(ChessSquare from, ChessSquare to)
         {
             var moveValidationResult = CheckMoveValidity(from, to);
-            moveValidationResult.ToSAN = MoveToSAN(moveValidationResult);
+            if (moveValidationResult.IsValid)
+            {
+                moveValidationResult.ToSAN = MoveToSAN(moveValidationResult);
+            }
 
             return moveValidationResult;
         }
