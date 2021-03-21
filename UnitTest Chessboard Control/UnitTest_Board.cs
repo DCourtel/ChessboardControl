@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChessboardControl;
 using SUT = ChessboardControl.Board;
@@ -8,6 +10,31 @@ namespace UnitTest_Chessboard_Control
     [TestClass]
     public class UnitTest_Board
     {
+        private static List<string> GetHalfMovesFromPGN(string pgn)
+        {
+            //  1.e4 e5 2.f4 exf4 3.Bc4 d5 4.Bxd5 Qh4+ 5.Kf1 g5 6.Nc3 Ne7
+            var moves = new List<string>();
+            var halfMoves = pgn.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var halfMove in halfMoves)
+            {
+                var index = halfMove.IndexOf('.');
+                if (index != -1)
+                {
+                    moves.Add(halfMove.Substring(index + 1));
+                }
+                else
+                {
+                    moves.Add(halfMove);
+                }
+            }
+
+            return moves;
+        }
+
+
+        #region Constructors
+
         [TestMethod]
         public void Constructor_Should_InitializeWithInitialPosition()
         {
@@ -47,6 +74,56 @@ namespace UnitTest_Chessboard_Control
             Assert.AreEqual(expectedCastlingForBlack, board.GetCastlingRights(ChessColor.Black));
         }
 
+        #endregion Constructors
+
+        [TestMethod]
+        public void Ascii_Should_ReturnCorrectFormat()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            string actual;
+
+            //	Act
+            actual = board.Ascii();
+
+            //	Assert
+            Assert.AreEqual("   +------------------------+\n" +
+                " 8 | r  n  b  q  k  b  n  r |\n" +
+                " 7 | p  p  p  p  p  p  p  p |\n" +
+                " 6 | .  .  .  .  .  .  .  . |\n" +
+                " 5 | .  .  .  .  .  .  .  . |\n" +
+                " 4 | .  .  .  .  .  .  .  . |\n" +
+                " 3 | .  .  .  .  .  .  .  . |\n" +
+                " 2 | P  P  P  P  P  P  P  P |\n" +
+                " 1 | R  N  B  Q  K  B  N  R |\n" +
+                "   +------------------------+\n" +
+                "     a  b  c  d  e  f  g  h\n", actual);
+        }
+
+        [TestMethod]
+        public void Ascii_Should_ReturnEmptyBoard()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            string actual;
+
+            //	Act
+            board.Clear();
+            actual = board.Ascii();
+
+            //	Assert
+            Assert.AreEqual("   +------------------------+\n" +
+                " 8 | .  .  .  .  .  .  .  . |\n" +
+                " 7 | .  .  .  .  .  .  .  . |\n" +
+                " 6 | .  .  .  .  .  .  .  . |\n" +
+                " 5 | .  .  .  .  .  .  .  . |\n" +
+                " 4 | .  .  .  .  .  .  .  . |\n" +
+                " 3 | .  .  .  .  .  .  .  . |\n" +
+                " 2 | .  .  .  .  .  .  .  . |\n" +
+                " 1 | .  .  .  .  .  .  .  . |\n" +
+                "   +------------------------+\n" +
+                "     a  b  c  d  e  f  g  h\n", actual);
+        }
 
         [TestMethod]
         public void Clear_Should_ResetTheState()
@@ -62,6 +139,144 @@ namespace UnitTest_Chessboard_Control
             Assert.AreEqual(ChessColor.White, board.Turn);
             Assert.AreEqual(ChessCastling.None, board.GetCastlingRights(ChessColor.White));
             Assert.AreEqual(ChessCastling.None, board.GetCastlingRights(ChessColor.Black));
+        }
+
+        [TestMethod]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b KQkq - 0 4", ChessCastling.KingSide|ChessCastling.QueenSide, ChessCastling.KingSide|ChessCastling.QueenSide)]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b Qkq - 0 4", ChessCastling.QueenSide, ChessCastling.KingSide | ChessCastling.QueenSide)]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b kq - 0 4", ChessCastling.None, ChessCastling.KingSide | ChessCastling.QueenSide)]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b q - 0 4", ChessCastling.None, ChessCastling.QueenSide)]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b - - 0 4", ChessCastling.None, ChessCastling.None)]
+        public void GetCastlingRights_Should_ReturnCorrectValues(string fenString, ChessCastling expectedForWhite, ChessCastling expectedForBlack)
+        {
+            //	Arrange
+            SUT board;
+            ChessCastling actualWhite;
+            ChessCastling actualBlack;
+
+            //	Act
+            board = new SUT(fenString);
+            actualWhite = board.GetCastlingRights( ChessColor.White);
+            actualBlack = board.GetCastlingRights(ChessColor.Black);
+
+            //	Assert
+            Assert.AreEqual(expectedForWhite, actualWhite);
+            Assert.AreEqual(expectedForBlack, actualBlack);
+        }
+
+        [TestMethod]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "c4", "Qa4xc4")]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a6", "c4", "Qa6xc4")]
+        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c6", "c4", "Qc6xc4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "d4", "Qaxd4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c5", "d4", "Qcxd4")]
+        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "d6", "d4", "Qdxd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b5", "d4", "Nb5xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b3", "d4", "Nb3xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f5", "d4", "Nf5xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f3", "d4", "Nf3xd4")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g1", "f3", "Nf3")]
+        public void GetDisambiguator_Should_ReturnCorrectValue(string FENPosition, string from, string to, string expectedSAN)
+        {
+            //	Arrange
+            SUT board = new SUT(FENPosition);
+            ChessMove actualMove;
+
+            //	Act
+            actualMove = board.GetMoveValidity(new ChessSquare(from), new ChessSquare(to));
+
+            //	Assert
+            Assert.AreEqual(expectedSAN, actualMove.ToSAN);
+        }
+
+        [TestMethod]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")]
+        [DataRow("rnbqkb1r/pp2pppp/5n2/3p4/2PP4/2N5/PP3PPP/R1BQKBNR b KQkq - 2 5")]
+        [DataRow("rnbqk1nr/p1pp1ppp/8/1pP1p3/1b2P3/8/PP1P1PPP/RNBQKBNR w KQkq b6 0 4")]
+        [DataRow("rnbqkbnr/pppp1p1p/8/4p3/B3P1pP/8/PPPP1PP1/RNBQK1NR b KQkq h3 0 4")]
+        public void GetFEN_Should_Return_CorrectFenString(string expectedFEN)
+        {
+            //	Arrange
+            SUT board;
+
+            //	Act
+            board = new SUT(expectedFEN);
+
+            //	Assert
+            Assert.AreEqual(expectedFEN, board.GetFEN());
+        }
+
+        [TestMethod]
+        [DataRow("4k3/8/8/8/4K3/8/8/8 w - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
+        [DataRow("8/K7/8/8/4k3/8/8/8 b - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
+        [DataRow("8/K3N3/8/8/4k3/8/8/4N3 b - - 0 1", "e4", "e5,d4,f4,e3")]
+        [DataRow("8/k3n3/8/8/4K3/8/8/4n3 w - - 0 1", "e4", "e5,d4,f4,e3")]
+        [DataRow("8/8/8/8/4Q3/8/8/8 w - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/8/8/4q3/8/8/8 b - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/2P3P1/8/P3q2P/8/2P3P1/8 b - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/8/2p3p1/8/p3Q2p/8/2p3p1/8 w - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
+        [DataRow("8/4P3/8/8/P3r2P/8/8/4P3 b - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
+        [DataRow("8/4p3/8/8/p3R2p/8/8/4p3 w - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
+        [DataRow("8/7p/2p5/8/4B3/8/6p1/1p6 w - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
+        [DataRow("8/7P/2P5/8/4b3/8/6P1/1P6 b - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
+        [DataRow("8/8/8/8/4n3/8/8/8 b - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
+        [DataRow("8/8/8/8/4N3/8/8/8 w - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
+        public void GetLegalMoves_Should_ReturnAllLegalMoves(string fen, string from, string moves)
+        {
+            //	Arrange
+            SUT board = new SUT(fen);
+            List<ChessMove> legalMoves;
+            List<string> expectedMoves = new List<string>();
+
+            //	Act
+            foreach (string move in moves.Split(new char[] { ',' }))
+            {
+                expectedMoves.Add(move);
+            }
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(expectedMoves.Count, legalMoves.Count);
+            foreach (ChessMove legalMove in legalMoves)
+            {
+                if (from == legalMove.From.AlgebraicNotation)
+                {
+                    bool found = false;
+                    foreach (string expectedMove in expectedMoves)
+                    {
+                        if (expectedMove == legalMove.To.AlgebraicNotation) { found = true; break; }
+                    }
+                    Assert.IsTrue(found);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnAllLegalMovesForInitialPosition()
+        {
+            //	Arrange
+            SUT board = new SUT();
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(20, legalMoves.Count);
+        }
+
+        [TestMethod]
+        public void GetLegalMoves_Should_ReturnEmptyList()
+        {
+            //	Arrange
+            SUT board = new SUT("8/4p3/p3k3/P2R1R2/4K1p1/6P1/8/8 b - - 0 1");
+            List<ChessMove> legalMoves;
+
+            //	Act
+            legalMoves = board.GetLegalMoves();
+
+            //	Assert
+            Assert.AreEqual(0, legalMoves.Count);
         }
 
         [TestMethod]
@@ -85,7 +300,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentException))]
+        [ExpectedException(typeof(ArgumentException))]
         public void LoadFEN_Should_ThrowArgumentException()
         {
             //	Arrange
@@ -94,6 +309,37 @@ namespace UnitTest_Chessboard_Control
             //	Act
             board.Clear();
             board.LoadFEN("rnbqkbnr/1p1p1ppp/p3p3/NP3/8/PPP2PPP/RNBQKB1R w KQkq - 0 5");
+        }
+
+        [TestMethod]
+        public void Move_Should_Play_The_Game()
+        {
+            //	Arrange
+            var testFile = new System.IO.FileInfo(@"..\..\..\..\Test-Materials\Games\Alekhine.pgn");
+            int gameNumber = 0;
+
+            //	Act
+            using (var reader = testFile.OpenText())
+            {
+                var board = new Board();
+                while (!reader.EndOfStream)
+                {
+                    var game = reader.ReadLine();
+                    var halfMoves = GetHalfMovesFromPGN(game);
+                    gameNumber++;
+                    System.Diagnostics.Trace.WriteLine($"Playing game #{gameNumber}");
+                    board.Reset();
+                    var turn = ChessColor.White;
+                    foreach (var halfMove in halfMoves)
+                    {
+                        var currentMove = board.SANToMove(halfMove);
+                        Assert.IsTrue(currentMove.IsValid);
+                        Assert.AreEqual(board.Turn, turn);
+                        turn = turn == ChessColor.White? ChessColor.Black: ChessColor.White;
+                        board.Move(currentMove);
+                    }
+                }
+            }
         }
 
         [TestMethod]
@@ -147,6 +393,59 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
+        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R3K2R w KQkq - 6 8", "O-O", "r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R4RK1 b kq - 7 8")]
+        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R3K2R w KQkq - 6 8", "O-O-O", "r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/2KR3R b kq - 7 8")]
+        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R b KQkq - 7 8", "O-O", "r4rk1/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R w KQ - 8 9")]
+        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R b KQkq - 7 8", "O-O-O", "2kr3r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R w KQ - 8 9")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e3", "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "e6", "rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 2")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "e5", "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")]
+        [DataRow("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", "b3", "rnbqkbnr/pppp1ppp/8/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR b KQkq - 0 2")]
+        [DataRow("rnbqkbnr/pppp1ppp/8/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR b KQkq - 0 2", "h6", "rnbqkbnr/pppp1pp1/7p/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR w KQkq - 0 3")]
+        [DataRow("rnbqkbnr/pppp1pp1/7p/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR w KQkq - 0 3", "b4", "rnbqkbnr/pppp1pp1/7p/4p3/1P2P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 3")]
+        [DataRow("rnbqkbnr/pppp1pp1/7p/4p3/1P2P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 3", "h5", "rnbqkbnr/pppp1pp1/8/4p2p/1P2P3/8/P1PP1PPP/RNBQKBNR w KQkq - 0 4")]
+        [DataRow("rnbqkbnr/pppp1pp1/8/4p2p/1P2P3/8/P1PP1PPP/RNBQKBNR w KQkq - 0 4", "b5", "rnbqkbnr/pppp1pp1/8/1P2p2p/4P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 4")]
+        //[DataRow("", "", "")]
+        //[DataRow("", "", "")]
+        //[DataRow("", "", "")]
+        //[DataRow("", "", "")]
+        //[DataRow("", "", "")]
+        //[DataRow("", "", "")]
+        public void SANToMove_Should_Return_CorrectChessMove(string initialFEN, string san, string resultingFEN)
+        {
+            //  [DataRow("", "", "")]
+            //	Arrange
+            SUT board;
+            ChessMove resultingMove;
+
+            //	Act
+            board = new SUT(initialFEN);
+            resultingMove = board.SANToMove(san);
+            board.Move(resultingMove);
+
+            //	Assert
+            Assert.IsTrue(resultingMove.IsValid);
+            Assert.AreEqual(resultingFEN, board.GetFEN());
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O-O")]
+        public void SANToMove_Should_ThrowArgumentException(string initialFEN, string san)
+        {
+            //	Arrange
+            SUT board;
+
+            //	Act
+            board = new SUT(initialFEN);
+            board.SANToMove(san);
+        }
+
+        [TestMethod]
         public void GetPieceAt_Should_ReturnThePiece()
         {
             //	Arrange
@@ -172,7 +471,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void GetPieceAt_Should_ThrowArgumentNullExecption()
         {
             //	Arrange
@@ -199,7 +498,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void PutPiece_Should_ThrowException_When_PieceIsNull()
         {
             //	Arrange
@@ -210,7 +509,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void PutPiece_Should_ThrowException_When_SquareIsNull()
         {
             //	Arrange
@@ -221,7 +520,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentException))]
+        [ExpectedException(typeof(ArgumentException))]
         public void PutPiece_Should_ThrowException_When_ThereIsTwoKingOfTheSameColor()
         {
             //	Arrange
@@ -266,7 +565,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void RemovePieceAt_Should_ThrowArgumentNullException()
         {
             //	Arrange
@@ -277,153 +576,6 @@ namespace UnitTest_Chessboard_Control
 
             //	Assert
 
-        }
-
-        [TestMethod]
-        public void Ascii_Should_ReturnCorrectFormat()
-        {
-            //	Arrange
-            SUT board = new SUT();
-            string actual;
-
-            //	Act
-            actual = board.Ascii();
-
-            //	Assert
-            Assert.AreEqual("   +------------------------+\n" +
-                " 8 | r  n  b  q  k  b  n  r |\n" +
-                " 7 | p  p  p  p  p  p  p  p |\n" +
-                " 6 | .  .  .  .  .  .  .  . |\n" +
-                " 5 | .  .  .  .  .  .  .  . |\n" +
-                " 4 | .  .  .  .  .  .  .  . |\n" +
-                " 3 | .  .  .  .  .  .  .  . |\n" +
-                " 2 | P  P  P  P  P  P  P  P |\n" +
-                " 1 | R  N  B  Q  K  B  N  R |\n" +
-                "   +------------------------+\n" +
-                "     a  b  c  d  e  f  g  h\n", actual);
-        }
-
-        [TestMethod]
-        public void Ascii_Should_ReturnEmptyBoard()
-        {
-            //	Arrange
-            SUT board = new SUT();
-            string actual;
-
-            //	Act
-            board.Clear();
-            actual = board.Ascii();
-
-            //	Assert
-            Assert.AreEqual("   +------------------------+\n" +
-                " 8 | .  .  .  .  .  .  .  . |\n" +
-                " 7 | .  .  .  .  .  .  .  . |\n" +
-                " 6 | .  .  .  .  .  .  .  . |\n" +
-                " 5 | .  .  .  .  .  .  .  . |\n" +
-                " 4 | .  .  .  .  .  .  .  . |\n" +
-                " 3 | .  .  .  .  .  .  .  . |\n" +
-                " 2 | .  .  .  .  .  .  .  . |\n" +
-                " 1 | .  .  .  .  .  .  .  . |\n" +
-                "   +------------------------+\n" +
-                "     a  b  c  d  e  f  g  h\n", actual);
-        }
-
-        [TestMethod]
-        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "c4", "Qa4xc4")]
-        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a6", "c4", "Qa6xc4")]
-        [DataRow("rnbqkbnr/pppppppp/Q1Q5/8/Q1p5/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c6", "c4", "Qc6xc4")]
-        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "a4", "d4", "Qaxd4")]
-        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "c5", "d4", "Qcxd4")]
-        [DataRow("rnbqkbnr/pppppppp/3Q4/2Q5/Q2p4/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "d6", "d4", "Qdxd4")]
-        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b5", "d4", "Nb5xd4")]
-        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "b3", "d4", "Nb3xd4")]
-        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f5", "d4", "Nf5xd4")]
-        [DataRow("rnbqkbnr/pppppppp/8/1N3N2/3p4/1N3N2/PPPPPPPP/RNB1KBNR w KQkq - 0 1", "f3", "d4", "Nf3xd4")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g1", "f3", "Nf3")]
-        public void GetDisambiguator_Should_ReturnCorrectValue(string FENPosition, string from, string to, string expectedSAN)
-        {
-            //	Arrange
-            SUT board = new SUT(FENPosition);
-            ChessMove actualMove;
-
-            //	Act
-            actualMove = board.GetMoveValidity(new ChessSquare(from), new ChessSquare(to));            
-
-            //	Assert
-            Assert.AreEqual(expectedSAN, actualMove.ToSAN);
-        }
-
-        [TestMethod]
-        public void GetLegalMoves_Should_ReturnAllLegalMovesForInitialPosition()
-        {
-            //	Arrange
-            SUT board = new SUT();
-            List<ChessMove> legalMoves;
-
-            //	Act
-            legalMoves = board.GetLegalMoves();
-
-            //	Assert
-            Assert.AreEqual(20, legalMoves.Count);
-        }
-
-        [TestMethod]
-        [DataRow("4k3/8/8/8/4K3/8/8/8 w - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
-        [DataRow("8/K7/8/8/4k3/8/8/8 b - - 0 1", "e4", "d5,e5,f5,d4,f4,d3,e3,f3")]
-        [DataRow("8/K3N3/8/8/4k3/8/8/4N3 b - - 0 1", "e4", "e5,d4,f4,e3")]
-        [DataRow("8/k3n3/8/8/4K3/8/8/4n3 w - - 0 1", "e4", "e5,d4,f4,e3")]
-        [DataRow("8/8/8/8/4Q3/8/8/8 w - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
-        [DataRow("8/8/8/8/4q3/8/8/8 b - - 0 1", "e4", "a8,b7,c6,d5,f3,g2,h1,a4,b4,c4,d4,f4,g4,h4,h7,g6,f5,b1,c2,d3,e1,e2,e3,e5,e6,e7,e8")]
-        [DataRow("8/8/2P3P1/8/P3q2P/8/2P3P1/8 b - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
-        [DataRow("8/8/2p3p1/8/p3Q2p/8/2p3p1/8 w - - 0 1", "e4", "c6,g6,a4,h4,c2,g2,d5,f3,b4,c4,d4,f4,g4,f5,d3,e1,e2,e3,e5,e6,e7,e8")]
-        [DataRow("8/4P3/8/8/P3r2P/8/8/4P3 b - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
-        [DataRow("8/4p3/8/8/p3R2p/8/8/4p3 w - - 0 1", "e4", "a4,b4,c4,d4,f4,g4,h4,e7,e6,e5,e3,e2,e1")]
-        [DataRow("8/7p/2p5/8/4B3/8/6p1/1p6 w - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
-        [DataRow("8/7P/2P5/8/4b3/8/6P1/1P6 b - - 0 1", "e4", "c6,d5,f3,g2,b1,c2,d3,f5,g6,h7")]
-        [DataRow("8/8/8/8/4n3/8/8/8 b - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
-        [DataRow("8/8/8/8/4N3/8/8/8 w - - 0 1", "e4", "d6,f6,g5,g3,d2,f2,c3,c5")]
-        public void GetLegalMoves_Should_ReturnAllLegalMoves(string fen, string from, string moves)
-        {
-            //	Arrange
-            SUT board = new SUT(fen);
-            List<ChessMove> legalMoves;
-            List<string> expectedMoves = new List<string>();
-
-            //	Act
-            foreach (string move in moves.Split(new char[] { ',' }))
-            {
-                expectedMoves.Add(move);
-            }
-            legalMoves = board.GetLegalMoves();
-
-            //	Assert
-            Assert.AreEqual(expectedMoves.Count, legalMoves.Count);
-            foreach (ChessMove legalMove in legalMoves)
-            {
-                if (from == legalMove.From.AlgebraicNotation)
-                {
-                    bool found = false;
-                    foreach (string expectedMove in expectedMoves)
-                    {
-                        if (expectedMove == legalMove.To.AlgebraicNotation) { found = true; break; }
-                    }
-                    Assert.IsTrue(found);
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GetLegalMoves_Should_ReturnEmptyList()
-        {
-            //	Arrange
-            SUT board = new SUT("8/4p3/p3k3/P2R1R2/4K1p1/6P1/8/8 b - - 0 1");
-            List<ChessMove> legalMoves;
-
-            //	Act
-            legalMoves = board.GetLegalMoves();
-
-            //	Assert
-            Assert.AreEqual(0, legalMoves.Count);
         }
 
         [TestMethod]
@@ -506,7 +658,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        public void GetMoveValidity_Should_Not_ThrowAnException_When_MoveIsInvalid()
+        public void GetMoveValidity_Should_Not_ThrowException_When_MoveIsInvalid()
         {
             //	Arrange
             var superBoard = new Board();

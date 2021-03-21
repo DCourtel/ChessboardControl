@@ -102,6 +102,12 @@ namespace ChessboardControl
             this.Rank = (ChessRank)7 - (x88 >> 4);
         }
 
+        internal ChessSquare(int file, int rank)
+        {
+            this.File = (ChessFile)file;
+            this.Rank = (ChessRank)rank;
+        }
+
         #region Properties
 
         [JsonIgnore]
@@ -142,7 +148,7 @@ namespace ChessboardControl
         {
             get
             {
-                return ((7 - (int)Rank) << 4) + (int)File; ;
+                return ((7 - (int)Rank) << 4) + (int)File;
             }
         }
 
@@ -160,6 +166,11 @@ namespace ChessboardControl
         internal static string GetAlgebraicNotation(int x88)
         {
             return $"{(ChessFile)(x88 & 15)}{8 - (x88 >> 4)}";
+        }
+
+        internal static int Getx88Notation(int file, int rank)
+        {
+            return ((7 - rank) << 4) + file;
         }
 
         public override string ToString()

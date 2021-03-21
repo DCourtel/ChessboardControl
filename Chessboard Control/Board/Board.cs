@@ -447,7 +447,7 @@ namespace ChessboardControl
                                     $"{((castling[ChessColor.White] & ChessCastling.QueenSide) != 0 ? "Q" : "")}" +
                                     $"{((castling[ChessColor.Black] & ChessCastling.KingSide) != 0 ? "k" : "")}" +
                                     $"{((castling[ChessColor.Black] & ChessCastling.QueenSide) != 0 ? "q" : "")}";
-            if (castlingFlags == "") { castlingFlags = "-"; }
+            if (castlingFlags.Length == 0) { castlingFlags = "-"; }
 
             //  En-Passant
             string epflags = ep_square == EMPTY_SQUARE ? "-" : ChessSquare.GetAlgebraicNotation(ep_square);
@@ -637,7 +637,7 @@ namespace ChessboardControl
                 var promotion = "";
                 //  Promotion without capture
                 if (move.MoveKind.HasFlag(ChessMoveType.Promotion)) { promotion = $"={FEN.ChessPieceKindToFEN(move.PromotedTo).ToUpper()}"; }
-                if (move.MoveKind.HasFlag(ChessMoveType.Promotion)) { return $"{move.To.AlgebraicNotation}{promotion}{kingStatus}"; }
+                if (move.MoveKind == ChessMoveType.Promotion || move.MoveKind == ChessMoveType.Normal) { return $"{move.To.AlgebraicNotation}{promotion}{kingStatus}"; }
                 //  Move without capturing
                 if (move.MoveKind == ChessMoveType.Normal || move.MoveKind == ChessMoveType.Big_Pawn) { return $"{move.To.AlgebraicNotation}{kingStatus}"; }
                 //  Capture
@@ -705,6 +705,120 @@ namespace ChessboardControl
         public void Reset()
         {
             LoadFEN(INITIAL_FEN_POSITION);
+        }
+
+        /// <summary>
+        /// Converts a Standard Algebraic Notation (SAN) formatted move into a <see cref="ChessMove"/> object.
+        /// </summary>
+        /// <param name="sanMove">A move expressed in the SAN format like: Nf3 or Rdxb2</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="sanMove"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="sanMove"/> cannot be translated into a valid move.</exception>
+        public ChessMove SANToMove(string sanMove)
+        {
+            if (sanMove == null) { throw new ArgumentNullException(); }
+            if (sanMove.Length == 0) { throw new ArgumentException(); }
+
+            sanMove = CleanSANMove(sanMove);
+
+            var allLegalMoves = GetLegalMoves();
+            foreach (ChessMove move in allLegalMoves)
+            {
+                if (move.MoveKind.HasFlag(ChessMoveType.Promotion))
+                {
+                    if (sanMove.Contains("=") && sanMove.IndexOf("=") == sanMove.Length - 2)
+                    {
+                        try
+                        {
+                            move.PromotedTo = FEN.FenToChessPiece(sanMove[sanMove.Length - 1]);
+                        }
+                        catch (Exception) { }
+                    }
+                }
+                move.ToSAN = MoveToSAN(move);
+                if (CleanSANMove(move.ToSAN) == sanMove)
+                {
+                    return move;
+                }
+            }
+
+            throw new ArgumentException($"{sanMove} cannot be converted to a valid ChessMove object.");
+
+            #region Castling
+
+            if (sanMove == "O-O")
+            {
+                if (this.Turn == ChessColor.White) { return GetMoveValidity(new ChessSquare("e1"), new ChessSquare("g1")); }
+                else { return GetMoveValidity(new ChessSquare("e8"), new ChessSquare("g8")); }
+            }
+            if (sanMove == "O-O-O")
+            {
+                if (this.Turn == ChessColor.White) { return GetMoveValidity(new ChessSquare("e1"), new ChessSquare("c1")); }
+                else { return GetMoveValidity(new ChessSquare("e8"), new ChessSquare("c8")); }
+            }
+
+            #endregion Castling
+
+            #region Pawn push
+            //  <pawn push>     ::= < to square >[< promoted to >]
+
+            //  b8=Q, a1=R
+            var pawnPushWithPromotionExpr = System.Text.RegularExpressions.Regex.Match(sanMove, "[abcdefgh][18](=[QRBK])");
+            if (pawnPushWithPromotionExpr.Success)
+            {
+                var toSquare = new ChessSquare(sanMove.Substring(0, 2));
+                var sourceSquare = new ChessSquare(toSquare.File, toSquare.Rank == ChessRank._1 ? ChessRank._2 : ChessRank._7);
+                var finalMove = GetMoveValidity(sourceSquare, toSquare);
+                finalMove.PromotedTo = FEN.FenToChessPiece(sanMove[3]);
+
+                return finalMove;
+            }
+            //  e3, e4, e6, e5
+            var pawnPushWithoutPromotionExpr = System.Text.RegularExpressions.Regex.Match(sanMove, "[abcdefgh][234567]");
+            if (pawnPushWithoutPromotionExpr.Success)
+            {
+                var toSquare = new ChessSquare(sanMove.Substring(0, 2));
+                var sourceSquares = FindSourceSquares(new ChessPiece(ChessPieceKind.Pawn, this.Turn), toSquare.File, toSquare);
+                if (sourceSquares.Count == 0) { throw new ArgumentException($"Cannot find a pawn moving like {sanMove}"); }
+                if (sourceSquares.Count > 1) { throw new ArgumentException($"Found more than one pawn moving like {sanMove}"); }
+
+                return GetMoveValidity(sourceSquares[0], toSquare);
+            }
+
+            #endregion Pawn push
+
+            #region Pawn Captures
+            //  <pawn captures> ::= < from file>[< from rank>] 'x' < to square >[< promoted to >]
+
+            //  bxc8=Q, fxg1=R
+            var pawnCaptureWithPromotionExpr = System.Text.RegularExpressions.Regex.Match(sanMove, "[abcdefgh][18](=[QRBK])");
+            if (pawnCaptureWithPromotionExpr.Success)
+            {
+                var toSquare = new ChessSquare(sanMove.Substring(0, 2));
+                var sourceSquare = new ChessSquare(toSquare.File, toSquare.Rank == ChessRank._1 ? ChessRank._2 : ChessRank._7);
+                var finalMove = GetMoveValidity(sourceSquare, toSquare);
+                finalMove.PromotedTo = FEN.FenToChessPiece(sanMove[3]);
+
+                return finalMove;
+            }
+            //  e3, e4, e6, e5
+            var pawnCaptureWithoutPromotionExpr = System.Text.RegularExpressions.Regex.Match(sanMove, "[abcdefgh][234567]");
+            if (pawnCaptureWithoutPromotionExpr.Success)
+            {
+                var toSquare = new ChessSquare(sanMove.Substring(0, 2));
+                var sourceSquares = FindSourceSquares(new ChessPiece(ChessPieceKind.Pawn, this.Turn), toSquare.File, toSquare);
+                if (sourceSquares.Count == 0) { throw new ArgumentException($"Cannot find a pawn moving like {sanMove}"); }
+                if (sourceSquares.Count > 1) { throw new ArgumentException($"Found more than one pawn moving like {sanMove}"); }
+
+                return GetMoveValidity(sourceSquares[0], toSquare);
+            }
+
+
+
+
+            #endregion Pawn Captures
+
+            throw new ArgumentException($"{sanMove} cannot be converted to a ChessMove object.");
         }
 
         /// <summary>
@@ -830,15 +944,115 @@ namespace ChessboardControl
 
         #region Private Methods
 
+        /// <summary>
+        /// Removes all optional annotations like (+, ++, #, e.p., !!, !, !?, ?!, ?, ??)
+        /// </summary>
+        /// <param name="sanMove"></param>
+        /// <returns></returns>
+        private string CleanSANMove(string sanMove)
+        {
+            var optionalChars = new string[] { "+", "#", "!", "?" };
+            foreach (var optionalChar in optionalChars)
+            {
+                sanMove = sanMove.Replace(optionalChar, string.Empty);
+            }
+            sanMove = sanMove.Replace("e.p.", string.Empty);
+
+            return sanMove.Replace(" ", string.Empty);
+        }
+
+        /// <summary>
+        /// Returns a list of all squares where a piece of the given kind can reaches the given target square.
+        /// </summary>
+        /// <param name="sourcePiece">Define the kind and the color of the source piece that must be able to reach the <paramref name="to"/> square.</param>
+        /// <param name="to">Square where the piece must be able to go.</param>
+        /// <returns></returns>
+        private List<ChessSquare> FindSourceSquares(ChessPiece sourcePiece, ChessSquare to)
+        {
+            var sourceSquares = new List<ChessSquare>();
+
+            for (int rank = 0; rank < 8; rank++)
+            {
+                for (int file = 0; file < 8; file++)
+                {
+                    var potentialSquare = FindSourceSquare(sourcePiece, file, rank, to);
+                    if (potentialSquare != null) { sourceSquares.Add(potentialSquare); }
+                }
+            }
+
+            return sourceSquares;
+        }
+
+        /// <summary>
+        /// Returns a list of all squares where a piece of the given kind can reaches the given target square.
+        /// </summary>
+        /// <param name="sourcePiece">Define the kind and the color of the source piece that must be able to reach the <paramref name="to"/> square.</param>
+        /// <param name="sourceRank">Restrict search to these Rank.</param>
+        /// <param name="to">Square where the piece must be able to go.</param>
+        /// <returns></returns>
+        private List<ChessSquare> FindSourceSquares(ChessPiece sourcePiece, ChessRank sourceRank, ChessSquare to)
+        {
+            var sourceSquares = new List<ChessSquare>();
+
+            for (int file = 0; file < 8; file++)
+            {
+                var potentialSquare = FindSourceSquare(sourcePiece, file, (int)sourceRank, to);
+                if (potentialSquare != null) { sourceSquares.Add(potentialSquare); }
+            }
+
+            return sourceSquares;
+        }
+
+        /// <summary>
+        /// Returns a list of all squares where a piece of the given kind can reaches the given target square.
+        /// </summary>
+        /// <param name="sourcePiece">Define the kind and the color of the source piece that must be able to reach the <paramref name="to"/> square.</param>
+        /// <param name="sourceFile">Restrict search to these File.</param>
+        /// <param name="sourceRank">Restrict search to these Rank.</param>
+        /// <param name="to">Square where the piece must be able to go.</param>
+        /// <returns></returns>
+        private List<ChessSquare> FindSourceSquares(ChessPiece sourcePiece, ChessFile sourceFile, ChessSquare to)
+        {
+            var sourceSquares = new List<ChessSquare>();
+
+            for (int rank = 0; rank < 8; rank++)
+            {
+                var potentialSquare = FindSourceSquare(sourcePiece, (int)sourceFile, rank, to);
+                if (potentialSquare != null) { sourceSquares.Add(potentialSquare); }
+            }
+
+            return sourceSquares;
+        }
+
+        private ChessSquare FindSourceSquare(ChessPiece sourcePiece, int file, int rank, ChessSquare to)
+        {
+            var potentialSquare = new ChessSquare(file, rank);
+            var potentialPiece = board[potentialSquare.x88Notation];
+
+            if (potentialPiece == sourcePiece)
+            {
+                var moveValidation = GetMoveValidity(potentialSquare, to);
+                if (moveValidation.IsValid) { return potentialSquare; }
+            }
+            return null;
+        }
+
         private string GetDisambiguator(ChessMove move)
         {
             Dictionary<ChessFile, int> matchingFiles = new Dictionary<ChessFile, int>();
             Dictionary<ChessRank, int> matchingRanks = new Dictionary<ChessRank, int>();
             List<ChessSquare> candidateSquares = GetAllAttackingPieces(move.MovingPiece.Kind, Turn, move.To.x88Notation);
 
-            if (candidateSquares.Count < 2) { return string.Empty; }
-
+            //  Remove illegal moves
+            var legalCandidateSquares = new List<ChessSquare>();
             foreach (ChessSquare square in candidateSquares)
+            {
+                if (CheckMoveValidity(square, move.To).IsValid) { legalCandidateSquares.Add(square); }
+            }
+
+            if (legalCandidateSquares.Count < 2) { return string.Empty; }
+
+            foreach (ChessSquare square in legalCandidateSquares)
             {
                 if (matchingFiles.ContainsKey(square.File)) { matchingFiles[square.File]++; } else { matchingFiles.Add(square.File, 1); }
                 if (matchingRanks.ContainsKey(square.Rank)) { matchingRanks[square.Rank]++; } else { matchingRanks.Add(square.Rank, 1); }
@@ -1403,13 +1617,23 @@ namespace ChessboardControl
             /* if big pawn move, update the en passant square */
             if (move.MoveKind.HasFlag(ChessMoveType.Big_Pawn))
             {
+                var leftPiece = board[move.To.x88Notation - 1];
+                var rightPiece = board[move.To.x88Notation + 1];
                 if (Turn == ChessColor.Black)
                 {
-                    ep_square = move.To.x88Notation - 16;
+                    if ((leftPiece != null && leftPiece.Kind == ChessPieceKind.Pawn && leftPiece.Color == ChessColor.White) ||
+                         (rightPiece != null && rightPiece.Kind == ChessPieceKind.Pawn && rightPiece.Color == ChessColor.White))
+                    {
+                        ep_square = move.To.x88Notation - 16;
+                    }
                 }
                 else
                 {
-                    ep_square = move.To.x88Notation + 16;
+                    if ((leftPiece != null && leftPiece.Kind == ChessPieceKind.Pawn && leftPiece.Color == ChessColor.Black) ||
+                         (rightPiece != null && rightPiece.Kind == ChessPieceKind.Pawn && rightPiece.Color == ChessColor.Black))
+                    {
+                        ep_square = move.To.x88Notation + 16;
+                    }
                 }
             }
             else
