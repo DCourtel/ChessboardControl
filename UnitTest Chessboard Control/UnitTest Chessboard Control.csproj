@@ -58,6 +58,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="UnitTest_ChessPiece.cs" />
     <Compile Include="UnitTest_ChessSquare.cs" />
     <Compile Include="UnitTest_Board.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
