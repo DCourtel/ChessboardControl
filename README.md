@@ -5,6 +5,7 @@ A .Net control to display a chessboard.
 
 The control displays a set of chess pieces and allows to move these pieces in respect of chess rules. It can show available moves once a piece has been selected. Take a look at the «Chessboard Tester» project to have an idea of how to use the control.
 
+* 03/22/21: Fixed a bug where the En_Passant flag may not be reset. Add a method to convert a SAN string to a ChessMove object.
 * 03/14/21: Fixed a bug where GetMoveValidity was throwing an exception when the move was illegal.
 * 02/23/21: Set the GetMoveValidity method to always update the ToSAN property to the full notation (with disambiguation character if needed).
 * 02/21/21: Various bug fix. Add a button to load a FEN string onto Chessboard Tester.
