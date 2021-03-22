@@ -32,6 +32,8 @@ namespace UnitTest_Chessboard_Control
             return moves;
         }
 
+        
+        public TestContext TestContext { get; set; }
 
         #region Constructors
 
@@ -142,7 +144,7 @@ namespace UnitTest_Chessboard_Control
         }
 
         [TestMethod]
-        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b KQkq - 0 4", ChessCastling.KingSide|ChessCastling.QueenSide, ChessCastling.KingSide|ChessCastling.QueenSide)]
+        [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b KQkq - 0 4", ChessCastling.KingSide | ChessCastling.QueenSide, ChessCastling.KingSide | ChessCastling.QueenSide)]
         [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b Qkq - 0 4", ChessCastling.QueenSide, ChessCastling.KingSide | ChessCastling.QueenSide)]
         [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b kq - 0 4", ChessCastling.None, ChessCastling.KingSide | ChessCastling.QueenSide)]
         [DataRow("r3k2r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R3K2R b q - 0 4", ChessCastling.None, ChessCastling.QueenSide)]
@@ -156,7 +158,7 @@ namespace UnitTest_Chessboard_Control
 
             //	Act
             board = new SUT(fenString);
-            actualWhite = board.GetCastlingRights( ChessColor.White);
+            actualWhite = board.GetCastlingRights(ChessColor.White);
             actualBlack = board.GetCastlingRights(ChessColor.Black);
 
             //	Assert
@@ -316,7 +318,6 @@ namespace UnitTest_Chessboard_Control
         {
             //	Arrange
             var testFile = new System.IO.FileInfo(@"..\..\..\..\Test-Materials\Games\Alekhine.pgn");
-            int gameNumber = 0;
 
             //	Act
             using (var reader = testFile.OpenText())
@@ -326,20 +327,43 @@ namespace UnitTest_Chessboard_Control
                 {
                     var game = reader.ReadLine();
                     var halfMoves = GetHalfMovesFromPGN(game);
-                    gameNumber++;
-                    System.Diagnostics.Trace.WriteLine($"Playing game #{gameNumber}");
                     board.Reset();
-                    var turn = ChessColor.White;
                     foreach (var halfMove in halfMoves)
                     {
                         var currentMove = board.SANToMove(halfMove);
                         Assert.IsTrue(currentMove.IsValid);
-                        Assert.AreEqual(board.Turn, turn);
-                        turn = turn == ChessColor.White? ChessColor.Black: ChessColor.White;
                         board.Move(currentMove);
                     }
                 }
             }
+        }
+
+        [TestMethod]
+        [DataRow("r2qk2r/ppbn1pp1/2p1p3/2P2b1p/1P1PpP2/4P3/P2NB1PP/R1BQ1RK1 b kq f3 0 12", "g5")]
+        [DataRow("r2qk2r/ppbn1pp1/2p1p3/2P2b1p/1P1PpP2/4P3/P2NB1PP/R1BQ1RK1 b kq f3 0 12", "Nb8")]
+        [DataRow("r2qk2r/ppbn1pp1/2p1p3/2P2b1p/1P1PpP2/4P3/P2NB1PP/R1BQ1RK1 b kq f3 0 12", "exf3")]
+        public void Move_Should_ResetEnPassant(string fen, string nextMove)
+        {
+            //  Arrange            
+            var board = new SUT(fen);
+
+            //  Act
+            board.Move(board.SANToMove(nextMove));
+            fen = board.GetFEN();
+
+            //  Assert
+            Assert.AreEqual("-", new FEN(fen).EnPassant);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentNullException))]
+        public void Move_Should_ThrowException_When_FromIsNull()
+        {
+            //	Arrange
+            SUT board = new SUT();
+
+            //	Act            
+            board.Move(null, new ChessSquare("e4"));
         }
 
         [TestMethod]
@@ -352,17 +376,6 @@ namespace UnitTest_Chessboard_Control
             //	Act
             ChessMove invalidMove = board.GetMoveValidity(new ChessSquare("e2"), new ChessSquare("e5"));
             board.Move(invalidMove);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(System.ArgumentNullException))]
-        public void Move_Should_ThrowException_When_FromIsNull()
-        {
-            //	Arrange
-            SUT board = new SUT();
-
-            //	Act            
-            board.Move(null, new ChessSquare("e4"));
         }
 
         [TestMethod]
@@ -390,59 +403,6 @@ namespace UnitTest_Chessboard_Control
             Assert.AreEqual(ChessColor.White, board.Turn);
             Assert.AreEqual(ChessCastling.KingSide | ChessCastling.QueenSide, board.GetCastlingRights(ChessColor.White));
             Assert.AreEqual(ChessCastling.KingSide | ChessCastling.QueenSide, board.GetCastlingRights(ChessColor.Black));
-        }
-
-        [TestMethod]
-        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R3K2R w KQkq - 6 8", "O-O", "r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R4RK1 b kq - 7 8")]
-        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/R3K2R w KQkq - 6 8", "O-O-O", "r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2N2N2/PPPQ1PPP/2KR3R b kq - 7 8")]
-        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R b KQkq - 7 8", "O-O", "r4rk1/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R w KQ - 8 9")]
-        [DataRow("r3k2r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R b KQkq - 7 8", "O-O-O", "2kr3r/pppq1ppp/2n2n2/1B1pp1B1/1b1PP1b1/2NQ1N2/PPP2PPP/R3K2R w KQ - 8 9")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e3", "rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "e6", "rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 0 2")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "e5", "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")]
-        [DataRow("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", "b3", "rnbqkbnr/pppp1ppp/8/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR b KQkq - 0 2")]
-        [DataRow("rnbqkbnr/pppp1ppp/8/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR b KQkq - 0 2", "h6", "rnbqkbnr/pppp1pp1/7p/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR w KQkq - 0 3")]
-        [DataRow("rnbqkbnr/pppp1pp1/7p/4p3/4P3/1P6/P1PP1PPP/RNBQKBNR w KQkq - 0 3", "b4", "rnbqkbnr/pppp1pp1/7p/4p3/1P2P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 3")]
-        [DataRow("rnbqkbnr/pppp1pp1/7p/4p3/1P2P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 3", "h5", "rnbqkbnr/pppp1pp1/8/4p2p/1P2P3/8/P1PP1PPP/RNBQKBNR w KQkq - 0 4")]
-        [DataRow("rnbqkbnr/pppp1pp1/8/4p2p/1P2P3/8/P1PP1PPP/RNBQKBNR w KQkq - 0 4", "b5", "rnbqkbnr/pppp1pp1/8/1P2p2p/4P3/8/P1PP1PPP/RNBQKBNR b KQkq - 0 4")]
-        //[DataRow("", "", "")]
-        //[DataRow("", "", "")]
-        //[DataRow("", "", "")]
-        //[DataRow("", "", "")]
-        //[DataRow("", "", "")]
-        //[DataRow("", "", "")]
-        public void SANToMove_Should_Return_CorrectChessMove(string initialFEN, string san, string resultingFEN)
-        {
-            //  [DataRow("", "", "")]
-            //	Arrange
-            SUT board;
-            ChessMove resultingMove;
-
-            //	Act
-            board = new SUT(initialFEN);
-            resultingMove = board.SANToMove(san);
-            board.Move(resultingMove);
-
-            //	Assert
-            Assert.IsTrue(resultingMove.IsValid);
-            Assert.AreEqual(resultingFEN, board.GetFEN());
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O-O")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O")]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O-O")]
-        public void SANToMove_Should_ThrowArgumentException(string initialFEN, string san)
-        {
-            //	Arrange
-            SUT board;
-
-            //	Act
-            board = new SUT(initialFEN);
-            board.SANToMove(san);
         }
 
         [TestMethod]
@@ -740,386 +700,20 @@ namespace UnitTest_Chessboard_Control
             Assert.IsTrue(board.IsDrawByInsufficientMaterial);
         }
 
-        //  Pawn - Legal Moves
-
         [TestMethod]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "a3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "b2", "b3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "c2", "c3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2", "d3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2", "e3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "f2", "f3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g2", "g3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "h3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "a4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "b2", "b4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "c2", "c4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2", "d4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2", "e4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "f2", "f4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g2", "g4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "h4", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a7", "a6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b7", "b6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c7", "c6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d7", "d6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e7", "e6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f7", "f6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g7", "g6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h7", "h6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a7", "a5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b7", "b5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c7", "c5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d7", "d5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e7", "e5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f7", "f5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g7", "g5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h7", "h5", ChessMoveType.Big_Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "a3", "a4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "b3", "b4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "c3", "c4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "d3", "d4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "e3", "e4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "f3", "f4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "g3", "g4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "h3", "h4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "a4", "a5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "b5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "c5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "d5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "e5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "f5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "g5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "h4", "h5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "a5", "a6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "b5", "b6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "c5", "c6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "d5", "d6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "e5", "e6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "f5", "f6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "g5", "g6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/pppppppp/8/PPPPPPPP/8/8/8/RNBQKBNR w KQkq - 0 1", "h5", "h6", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a6", "a5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b6", "b5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c6", "c5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d6", "d5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e6", "e5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f6", "f5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g6", "g5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h6", "h5", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a5", "a4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b5", "b4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c5", "c4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d5", "d4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e5", "e4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f5", "f4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g5", "g4", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h4", "h3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a4", "a3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b4", "b3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c4", "c3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d4", "d3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e4", "e3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f4", "f3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g4", "g3", ChessMoveType.Normal)]
-        [DataRow("rnbqkbnr/8/8/8/pppppppp/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h4", "h3", ChessMoveType.Normal)]
-        public void GetMoveValidity_Should_Return_True_When_PawnMoveIsLegal(
-            string fen,
-            string from,
-            string to,
-            ChessMoveType moveType)
+        [ExpectedException(typeof(ArgumentException))]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "O-O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O")]
+        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "O-O-O")]
+        public void SANToMove_Should_ThrowArgumentException(string initialFEN, string san)
         {
             //	Arrange
-            var superBoard = new Board();
-            ChessMove actualResult;
+            SUT board;
 
             //	Act
-            superBoard.LoadFEN(fen);
-            actualResult = superBoard.GetMoveValidity(
-                new ChessSquare(from),
-                new ChessSquare(to));
-
-            //	Assert
-            Assert.IsTrue(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
-            Assert.AreEqual(moveType, actualResult.MoveKind);
-        }
-
-        //  Pawn - Legal Captures
-
-        [TestMethod]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "a6", "b7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "b6", "c7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "c6", "d7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "d6", "e7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "e6", "f7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "f6", "g7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "g6", "h7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "b6", "a7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "c6", "b7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "d6", "c7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "e6", "d7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "f6", "e7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "g6", "f7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppppp/PPPPPPPP/8/8/8/8/RNBQKBNR w KQkq - 0 1", "h6", "g7", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "a7", "b8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "b7", "c8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "c7", "d8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Queen)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "e7", "f8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "f7", "g8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "g7", "h8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Rook)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "b7", "a8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Rook)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "c7", "b8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "d7", "c8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "e7", "d8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Queen)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "g7", "f8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbq1bnr/PPPPPPPP/8/4k3/8/8/8/RNBQKBNR w KQ - 0 1", "h7", "g8", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a3", "b2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b3", "c2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c3", "d2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d3", "e2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e3", "f2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f3", "g2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g3", "h2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b3", "a2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c3", "b2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d3", "c2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e3", "d2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f3", "e2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g3", "f2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/8/8/pppppppp/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h3", "g2", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "a2", "b1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "b2", "c1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "c2", "d1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Queen)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "e2", "f1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "f2", "g1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "g2", "h1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Rook)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "b2", "a1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Rook)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "c2", "b1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "d2", "c1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "e2", "d1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Queen)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "g2", "f1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Bishop)]
-        [DataRow("rnbqkbnr/8/8/4K3/8/8/pppppppp/RNBQ1BNR b kq - 0 1", "h2", "g1", ChessMoveType.Capture | ChessMoveType.Promotion, ChessPieceKind.Knight)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "a4", "b5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "c5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "d5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "e5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "f5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "g5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "h5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "a5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "b5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "c5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "d5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "e5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "f5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "h4", "g5", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "a5", "b4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "b5", "c4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "c5", "d4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "d5", "e4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "e5", "f4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "f5", "g4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "g5", "h4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "b5", "a4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "c5", "b4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "d5", "c4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "e5", "d4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "f5", "e4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "g5", "f4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "h5", "g4", ChessMoveType.Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/p1pppppp/8/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 1", "a5", "b6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/1ppppppp/8/pP6/8/8/P1PPPPPP/RNBQKBNR w KQkq a6 0 1", "b5", "a6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pp1ppppp/8/1Pp5/8/8/P1PPPPPP/RNBQKBNR w KQkq c6 0 1", "b5", "c6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/p1pppppp/8/1pP5/8/8/PP1PPPPP/RNBQKBNR w KQkq b6 0 1", "c5", "b6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppp1pppp/8/2Pp4/8/8/PP1PPPPP/RNBQKBNR w KQkq d6 0 1", "c5", "d6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pp1ppppp/8/2pP4/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 1", "d5", "c6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppp1ppp/8/3Pp3/8/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 1", "d5", "e6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 1", "e5", "d6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppp1pp/8/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 1", "e5", "f6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppp1ppp/8/4pP2/8/8/PPPPP1PP/RNBQKBNR w KQkq e6 0 1", "f5", "e6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppp1p/8/5Pp1/8/8/PPPPP1PP/RNBQKBNR w KQkq g6 0 1", "f5", "g6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppp1pp/8/5pP1/8/8/PPPPPP1P/RNBQKBNR w KQkq f6 0 1", "g5", "f6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppppp1/8/6Pp/8/8/PPPPPP1P/RNBQKBNR w KQkq h6 0 1", "g5", "h6", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/1ppppppp/8/8/pP6/8/P1PPPPPP/RNBQKBNR b KQkq b3 0 1", "a4", "b3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/p1pppppp/8/8/Pp6/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1", "b4", "a3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/p1pppppp/8/8/1pP5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1", "b4", "c3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pp1ppppp/8/8/1Pp5/8/P1PPPPPP/RNBQKBNR b KQkq b3 0 1", "c4", "b3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pp1ppppp/8/8/2pP4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "c4", "d3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppp1pppp/8/8/2Pp4/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1", "d4", "c3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "d4", "e3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppp1ppp/8/8/3Pp3/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1", "e4", "d3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppp1ppp/8/8/4pP2/8/PPPPP1PP/RNBQKBNR b KQkq f3 0 1", "e4", "f3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppp1pp/8/8/4Pp2/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "f4", "e3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppp1pp/8/8/5pP1/8/PPPPPP1P/RNBQKBNR b KQkq g3 0 1", "f4", "g3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppp1p/8/8/5Pp1/8/PPPPP1PP/RNBQKBNR b KQkq f3 0 1", "g4", "f3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/pppppp1p/8/8/6pP/8/PPPPPPP1/RNBQKBNR b KQkq h3 0 1", "g4", "h3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        [DataRow("rnbqkbnr/ppppppp1/8/8/6Pp/8/PPPPPP1P/RNBQKBNR b KQkq g3 0 1", "h4", "g3", ChessMoveType.EP_Capture, ChessPieceKind.Pawn)]
-        public void GetMoveValidity_Should_Return_True_When_PawnCaptureIsLegal(
-            string fen,
-            string from,
-            string to,
-            ChessMoveType moveType,
-            ChessPieceKind capturedPiece)
-        {
-            //	Arrange
-            var superBoard = new Board();
-            ChessMove actualResult;
-
-            //	Act
-            superBoard.LoadFEN(fen);
-            actualResult = superBoard.GetMoveValidity(
-                new ChessSquare(from),
-                new ChessSquare(to));
-
-            //	Assert
-            Assert.IsTrue(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
-            Assert.AreEqual(capturedPiece, actualResult.CapturedPiece);
-            Assert.AreEqual(moveType, actualResult.MoveKind);
-        }
-
-        //  Pawn - Illegal Moves
-
-        [TestMethod]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "a5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "b2", "b5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "c2", "c5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2", "d5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2", "e5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "f2", "f5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g2", "g5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "h5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "a6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "b2", "b6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "c2", "c6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "d2", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2", "e6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "f2", "f6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "g2", "g6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "h6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "a3", "a5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "b3", "b5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "c3", "c5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "d3", "d5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "e3", "e5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "f3", "f5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "g3", "g5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "h3", "h5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "a3", "a6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "b3", "b6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "c3", "c6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "d3", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "e3", "e6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "f3", "f6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "g3", "g6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/PPPPPPPP/8/RNBQKBNR w KQkq - 0 1", "h3", "h6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "a4", "a6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "b6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "c6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "e6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "f6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "g6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "h4", "h6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "a4", "a3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "b3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "c3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "d3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "e3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "f3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "g3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "h4", "h3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "a4", "a2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "b4", "b2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "c4", "c2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "d4", "d2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "e4", "e2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "f4", "f2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "g4", "g2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "h4", "h2", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a7", "a4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b7", "b4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c7", "c4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d7", "d4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e7", "e4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f7", "f4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g7", "g4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h7", "h4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a7", "a3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b7", "b3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c7", "c3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d7", "d3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e7", "e3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f7", "f3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g7", "g3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h7", "h3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a6", "a4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b6", "b4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c6", "c4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d6", "d4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e6", "e4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f6", "f4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g6", "g4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h6", "h4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a6", "a3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b6", "b3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c6", "c3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d6", "d3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e6", "e3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f6", "f3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g6", "g3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h6", "h3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a5", "a3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b5", "b3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c5", "c3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d5", "d3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e5", "e3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f5", "f3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g5", "g3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h5", "h3", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a5", "a6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b5", "b6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c5", "c6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d5", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e5", "e6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f5", "f6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g5", "g6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h5", "h6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "a5", "a7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "b5", "b7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "c5", "c7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "d5", "d7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "e5", "e7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "f5", "f7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "g5", "g7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/8/8/pppppppp/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", "h5", "h7", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "c4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "d5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "a2", "e6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "f4", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "e5", ChessMoveRejectedReason.NotMovingLikeThis)]
-        [DataRow("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "h2", "d6", ChessMoveRejectedReason.NotMovingLikeThis)]
-        public void GetMoveValidity_Should_Return_False_When_PawnMoveIsIllegal(
-            string fen,
-            string from,
-            string to,
-            ChessMoveRejectedReason rejectedReason)
-        {
-            //	Arrange
-            var superBoard = new Board();
-            ChessMove actualResult;
-
-            //	Act
-            superBoard.LoadFEN(fen);
-            actualResult = superBoard.GetMoveValidity(
-                new ChessSquare(from),
-                new ChessSquare(to));
-
-            //	Assert
-            Assert.IsFalse(actualResult.IsValid);
-            Assert.AreEqual(ChessPieceKind.Pawn, actualResult.MovingPiece.Kind);
-            Assert.AreEqual(rejectedReason, actualResult.IllegalReason);
+            board = new SUT(initialFEN);
+            board.SANToMove(san);
         }
     }
 }

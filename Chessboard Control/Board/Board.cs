@@ -1615,6 +1615,7 @@ namespace ChessboardControl
             }
 
             /* if big pawn move, update the en passant square */
+            ep_square = EMPTY_SQUARE;
             if (move.MoveKind.HasFlag(ChessMoveType.Big_Pawn))
             {
                 var leftPiece = board[move.To.x88Notation - 1];
@@ -1635,10 +1636,6 @@ namespace ChessboardControl
                         ep_square = move.To.x88Notation + 16;
                     }
                 }
-            }
-            else
-            {
-                ep_square = EMPTY_SQUARE;
             }
 
             /* reset the 50 move counter if a pawn is moved or a piece is captured */
