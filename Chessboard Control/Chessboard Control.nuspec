@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Codasoft.Control.Chessboard</id>
+    <version>1.0.2103.26</version>
+    <title>Chessboard Control</title>
+    <authors>David COURTEL</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/DCourtel/ChessboardControl</projectUrl>
+    <description>A .Net framework control displaying a chessboard to use in your WinForm projects.</description>
+    <releaseNotes>First Nuget package.</releaseNotes>
+    <tags>Chess Chessboard WinForm Control</tags>
+	<icon>images\NugetIcon.png</icon>
+    <dependencies>
+		<group targetFramework=".NETFramework4.5">
+			<dependency id="Newtonsoft.Json" version="12.0.3" />
+		</group>      
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="Resources\NugetIcon.png" target="images\" />
+  </files>
+</package>

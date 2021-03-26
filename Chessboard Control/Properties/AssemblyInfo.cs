@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // l'ensemble d'attributs suivant. Changez les valeurs de ces attributs pour modifier les informations
 // associées à un assembly.
 [assembly: AssemblyTitle("Chessboard Control")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A .Net control displaying a chessboard with moves validation and history.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Chessboard Control")]
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // Vous pouvez spécifier toutes les valeurs ou indiquer les numéros de build et de révision par défaut
 // en utilisant '*', comme indiqué ci-dessous :
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.2103.22")]
-[assembly: AssemblyFileVersion("1.0.2103.22")]
+[assembly: AssemblyVersion("1.0.2103.26")]
+[assembly: AssemblyFileVersion("1.0.2103.26")]
