@@ -1,5 +1,6 @@
 # ChessboardControl
 A .Net control to display a chessboard.
+Nuget package: https://www.nuget.org/packages/Codasoft.Control.Chessboard
 
 ![Initial_Position](/Screenshots/SicilianDefense.gif)
 
